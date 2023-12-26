@@ -5,7 +5,7 @@
     "category": "Sales",
     'license': 'AGPL-3',
     "version": "16.0.1",
-    "depends": ["base", "sale", "crm", "sale_crm"],
+    "depends": ["base", "sale", "crm", "sale_crm","sale_temporal"],
     "application": False,
     "data": [
         "security/ir.model.access.csv",
