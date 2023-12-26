@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <data noupdate="0">
+    <record id="form_dynamic_approval_wizard" model="ir.ui.view">
+      <field name="name">Dynamic Approval Wizard Form View</field>
+      <field name="model">dynamic.approval.wizard</field>
+      <field name="arch" type="xml">
+        <form string="Dynamic Approval Wizard">
+          <div class="oe_title">
+            <h1>
+              <field name="record_id" readonly="1" force_save="1"/>
+            </h1>
+          </div>
+          <group>
+            <group>
+              <field name="mode" invisible="1"/>
+              <field name="note" default_focus="1"/>
+            </group>
+          </group>
+          <footer>
+            <button name="action_confirm" type="object" string="Confirm" class="btn-primary"/>
+            <button string="Cancel" class="btn-secondary" special="cancel"/>
+          </footer>
+        </form>
+      </field>
+    </record>
+  </data>
+</odoo>

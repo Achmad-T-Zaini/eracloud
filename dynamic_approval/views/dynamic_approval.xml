@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <data noupdate="0">
+    <record id="tree_dynamic_approval" model="ir.ui.view">
+      <field name="name">Dynamic Approval Tree View</field>
+      <field name="model">dynamic.approval</field>
+      <field name="arch" type="xml">
+        <tree string="Dynamic Approval">
+          <field name="name"/>
+          <field name="model_id"/>
+          <field name="amount_field_id"/>
+          <field name="currency_field_id"/>
+          <field name="create_date"/>
+          <field name="create_uid"/>
+        </tree>
+      </field>
+    </record>
+    <record id="form_dynamic_approval" model="ir.ui.view">
+      <field name="name">Dynamic Approval Form View</field>
+      <field name="model">dynamic.approval</field>
+      <field name="arch" type="xml">
+        <form string="Dynamic Approval">
+          <div class="alert font-weight-bold oe_edit_only">
+            After save this document, you need to reload the browser to apply generated form view
+          </div>
+          <sheet>
+            <div class="oe_button_box" name="button_box">
+              <button type="object" name="action_view_form"
+                      class="oe_stat_button"
+                      icon="fa-list"
+                      attrs="{'invisible':[('created_form_count', '=', 0)]}">
+                <field name="created_form_count" widget="statinfo" string="Generated Form Views"/>
+                <field name='created_form_ids' invisible="1"/>
+              </button>
+            </div>
+            <div class="oe_title">
+              <label for="name" class="oe_edit_only"/>
+              <h2>
+                <field name="name" placeholder="Reference"/>
+              </h2>
+            </div>
+            <group>
+              <group>
+                <field name="model_id" required="1"/>
+                <field name="model_name" invisible="1"/>
+                <field name="apply_specific_form"/>
+                <field name="form_ids" widget="many2many_tags"
+                       attrs="{'invisible': [('apply_specific_form', '=', False)], 'required': [('apply_specific_form', '=', True)]}"
+                       domain="[('model', '=', model_name), ('type', '=', 'form')]"/>
+                <field name="amount_field_id"
+                       domain="[('ttype', 'in', ['float', 'monetary']), ('model_id', '=', model_id)]"/>
+                <field name="currency_field_id"
+                       domain="[('ttype', 'in', ['many2one']), ('relation', '=', 'res.currency'), ('model_id', '=', model_id)]"/>
+                <field name="button_to_hide" placeholder="action_confirm,action_post,action_print"/>
+                <field name="button_to_execute" placeholder="action_confirm"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+                <field name="currency_id" groups="base.group_multi_currency"/>
+              </group>
+            </group>
+            <notebook>
+              <page string="Approval Details">
+                <field name="line_ids" nolabel="1">
+                  <tree editable="bottom">
+                    <field name="approval_id" invisible="1"/>
+                    <field name="sequence" invisible="1"/>
+                    <field name="name"/>
+                    <field name="group_id"/>
+                    <field name="amount" widget="monetary"
+                           attrs="{'column_invisible': [('parent.amount_field_id', '=', False)]}"/>
+                    <field name="currency_id" invisible="1"/>
+                  </tree>
+                </field>
+              </page>
+              <page string="Base View Architecture">
+                <field name="arch_base" widget="ace" options="{'mode': 'xml'}"/>
+              </page>
+            </notebook>
+          </sheet>
+        </form>
+      </field>
+    </record>
+  </data>
+</odoo>

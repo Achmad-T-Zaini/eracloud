@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="view_pause_helpdesk" model="ir.ui.view">
+        <field name="name">Pause Helpdesk</field>
+        <field name="model">helpdesk.timestamp.wizard</field>
+        <field name="type">form</field>
+        <field name="arch" type="xml">
+            <form string="Pause">
+                <group>
+                    <field name="reason" required="1"/>
+                </group>
+                <footer>
+                    <button name="action_pause" string="Pause" type="object" class="oe_highlight" />
+                    <button special="cancel" string="Cancel" class="oe_link" />
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_pause" model="ir.actions.act_window">
+        <field name="name">Pause Helpdesk</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">helpdesk.timestamp.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_pause_helpdesk"/>
+        <field name="target">new</field>
+    </record>
+
+</odoo>

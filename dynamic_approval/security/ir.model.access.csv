@@ -1,0 +1,7 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_dynamic_approval_read_global,Dynamic Approval for global: Read,dynamic_approval.model_dynamic_approval,,1,0,0,0
+access_dynamic_approval_line_read_global,Dynamic Approval Detail Access for global: Read,dynamic_approval.model_dynamic_approval_line,,1,0,0,0
+access_dynamic_approval_crud_admin,Dynamic Approval Access for admin: CRUD,dynamic_approval.model_dynamic_approval,base.group_system,1,1,1,1
+access_dynamic_approval_line_crud_admin,Dynamic Approval Detail Access for admin: CRUD,dynamic_approval.model_dynamic_approval_line,base.group_system,1,1,1,1
+access_base_approval_history_cr_global,Approval History Access for global: CR,dynamic_approval.model_base_approval_history,,1,0,1,0
+access_dynamic_approval_wizard_crud_global,Approval Wizard Access for global: CRUD,dynamic_approval.model_dynamic_approval_wizard,,1,1,1,1

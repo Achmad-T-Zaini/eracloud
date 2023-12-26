@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <data noupdate="0">
+    <record id="action_window_dynamic_approval" model="ir.actions.act_window">
+      <field name="name">Dynamic Approval</field>
+      <field name="type">ir.actions.act_window</field>
+      <field name="res_model">dynamic.approval</field>
+      <field name="view_mode">tree,form</field>
+    </record>
+    <menuitem id="menu_item_dynamic_approval"
+              name="Dynamic Approval"
+              action="dynamic_approval.action_window_dynamic_approval"
+              sequence="10"
+              groups="base.group_system"
+              web_icon="dynamic_approval,static/description/icon.png"
+    />
+  </data>
+</odoo>

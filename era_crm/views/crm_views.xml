@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<odoo>
+
+        <record id="crm_case_form_view_oppor_inherit_era" model="ir.ui.view">
+            <field name="name">crm.lead.oppor.inherited.era</field>
+            <field name="model">crm.lead</field>
+            <field name="inherit_id" ref="sale_crm.crm_case_form_view_oppor"/>
+            <field name="arch" type="xml">
+
+                <button name="action_sale_quotations_new" position="replace"/>
+
+            </field>
+        </record>
+
+
+    <record model="ir.ui.view" id="crm_lead_form_view_inherit">
+        <field name="name">crm.lead.form.inherit</field>
+        <field name="model">crm.lead</field>
+        <field name="inherit_id" ref="crm.crm_lead_view_form"/>
+        <field name="arch" type="xml">
+            
+            <button name="%(crm.crm_lead_lost_action)d" position="replace">
+                <button name="%(crm.crm_lead_lost_action)d" string="Lost" data-hotkey="l" title="Mark as lost"
+                    type="action" context="{'default_lead_id': active_id}" attrs="{'invisible': ['|', ('type', '=', 'lead'), '&amp;',('active', '=', False),('probability', '&lt;', 100)]}"/>
+                <button name="action_create_order" string="Create Order" type="object" data-hotkey="c"
+                    attrs="{'invisible': [('quotation_count','>=',1),('is_won', '!=', True)]}"/>
+            </button>
+            <field name="tag_ids" position="before">
+                    <label name="recurrence_label" for="recurrence_id"/>
+                    <div class="o_row" name="recurrence_block">
+                        <field name="recurrence_id" 
+                               domain="[('unit', 'not in', ['hour', 'day'])]"
+                               options="{'no_create': True}"/>
+                        <span> Periode</span>
+                        <field name="duration" />
+                    </div>
+            </field>
+            <field name="company_id" position="after">
+                <field name="fiscal_position_id" invisible="1"/>
+<!--
+                <field name="dynamic_approval_state" invisible="1"/>
+-->
+                <field name="is_won" invisible="1"/>
+            </field>
+            <xpath expr="//page[@name='internal_notes']" position="before">
+                    <page string="Order Lines" name="order_lines">
+                        <field
+                            name="order_line"
+                        >
+                            <tree
+                                string="Sales Order Lines"
+                                editable="bottom"
+                            >
+                                <field name="company_id" invisible="1"/>
+                                <field name="currency_id" invisible="1"/>
+                                <field name="product_id" />
+                                <field name="product_uom_category_id" invisible="1"/>
+                                <field name="name" />
+                                <field name="product_uom_qty" />
+                                <field name="product_uom" />
+                                <field name="price_unit" />
+                                <field name="tax_id" readonly='0' widget="many2many_tags"/>
+                                <field name="price_subtotal" />
+                                <field name="price_tax" invisible="1"/>
+                                <field name="price_total" invisible="1"/>
+                            </tree>
+                        </field>
+                        <group name="note_group" col="6" class="mt-2 mt-md-0">
+                            <group colspan="4">
+                            </group>
+                            <group class="oe_subtotal_footer oe_right" colspan="2" name="sale_total">
+                                <field name="tax_totals" widget="account-tax-totals-field" nolabel="1" colspan="2" readonly="1"/>
+                            </group>
+                            <div class="clearfix"/>
+                        </group>
+                    </page>
+            </xpath>
+        </field>
+    </record>
+
+
+</odoo>
+

@@ -1,0 +1,120 @@
+<odoo>
+  <data>
+    <!-- explicit list view definition -->
+<record id="helpdesk_tickets_view_tree_inherited" model="ir.ui.view">
+  <field name='name'>helpdesk.ticket.form.inherited</field>
+  <field name="model">helpdesk.ticket</field>
+  <field name="inherit_id" ref="helpdesk.helpdesk_tickets_view_tree"/>
+  <field name="arch" type="xml">
+    <xpath expr="//field[@name='activity_ids']" position="after">
+      <field optional="hide" name="sla_id"/>
+      <field optional="hide" name="open_case"/>
+      <field optional="hide" name="response_date"/>
+      <field optional="hide" name="response_time_display"/>
+      <field optional="hide" name="resolution_date"/>
+      <field optional="hide" name="resolution_time_display"/>
+    </xpath>
+  </field>
+</record>
+
+    <!-- actions opening views on models -->
+<record id="helpdesk_sla_view_form_inherited" model="ir.ui.view">
+  <field name="name">helpdesk.sla.view.form.inherited</field>
+  <field name="model">helpdesk.sla</field>
+  <field name="inherit_id" ref="helpdesk.helpdesk_sla_view_form"/>
+  <field name="arch" type="xml">
+    <xpath expr="//form[1]/sheet[1]/group[1]/group[1]/label[1]" position="attributes">
+      <attribute name="string">Resolution Time</attribute>
+    </xpath>
+    <xpath expr="//form[1]/sheet[1]/group[1]/group[1]/div[1]" position="after">
+      <label for="response_time" string="Response Time"/>
+      <div class="o_row">
+        <field name="response_time" widget="float_time"/>
+        <span class="o_field_widget o_readonly_modifier">Working Hours</span>
+      </div>
+      <field name="next_team_id" />
+    </xpath>
+  </field>
+</record>
+
+<record id="helpdesk_ticket_view_form_inherited" model="ir.ui.view">
+  <field name='name'>helpdesk.ticket.form.inherited</field>
+  <field name="model">helpdesk.ticket</field>
+  <field name="inherit_id" ref="helpdesk.helpdesk_ticket_view_form"/>
+  <field name="arch" type="xml">
+    <xpath expr="//form[1]/header[1]" position="inside">
+      <field name="is_paused" invisible="1" />
+      <button name="button_pause" string="Pause" type="object" class="oe_highlight" groups="helpdesk.group_helpdesk_user" attrs="{'invisible':[('is_paused','=',True)]}"/>
+      <button name="button_unpause" string="Resume" type="object" groups="helpdesk.group_helpdesk_user" attrs="{'invisible':[('is_paused','=',False)]}"/>
+    </xpath>
+    <xpath expr="//field[@name='tag_ids']" position="after">
+      <field name="sla_id" domain="[('team_id','=',team_id)]"/>
+      <field name="open_case" />
+    </xpath>
+    <xpath expr="//field[@name='email_cc']" position="after">
+      <field name="response_date" readonly="1" force_save="1"/>
+      <field name="response_time_display" readonly="1" force_save="1"/>
+      <field name="response_time" invisible="1"/>
+      <field name="resolution_date" readonly="1" force_save="1"/>
+      <field name="resolution_time_display" readonly="1" force_save="1"/>
+      <field name="resolution_time" invisible="1" />
+    </xpath>
+  </field>
+</record>
+
+<record id="helpdesk_ticket_timesheet_view_form_inherited" model="ir.ui.view">
+  <field name='name'>helpdesk.ticket.timesheet.form.inherited</field>
+  <field name="model">helpdesk.ticket</field>
+  <field name="priority">30</field>
+  <field name="inherit_id" ref="helpdesk_timesheet.helpdesk_ticket_view_form_inherit_helpdesk_timesheet"/>
+  <field name="arch" type="xml">
+    <xpath expr="//notebook[1]" position="inside">
+      <page string="Timestamp" groups="helpdesk.group_helpdesk_manager">
+        <field name="timestamp_line" >
+          <tree>
+            <field name="timestamp" />
+            <field name="timestamp_type" />
+            <field name="name" />
+            <field name="duration" widget="float_time"/>
+          </tree>
+        </field>
+      </page>
+    </xpath>
+  </field>
+</record>
+
+
+    <!-- server action to the one above -->
+<!--
+    <record model="ir.actions.server" id="ark_helpdesk.action_server">
+      <field name="name">ark_helpdesk server</field>
+      <field name="model_id" ref="model_ark_helpdesk_ark_helpdesk"/>
+      <field name="state">code</field>
+      <field name="code">
+        action = {
+          "type": "ir.actions.act_window",
+          "view_mode": "tree,form",
+          "res_model": model._name,
+        }
+      </field>
+    </record>
+-->
+
+    <!-- Top menu item -->
+<!--
+    <menuitem name="ark_helpdesk" id="ark_helpdesk.menu_root"/>
+-->
+    <!-- menu categories -->
+<!--
+    <menuitem name="Menu 1" id="ark_helpdesk.menu_1" parent="ark_helpdesk.menu_root"/>
+    <menuitem name="Menu 2" id="ark_helpdesk.menu_2" parent="ark_helpdesk.menu_root"/>
+-->
+    <!-- actions -->
+<!--
+    <menuitem name="List" id="ark_helpdesk.menu_1_list" parent="ark_helpdesk.menu_1"
+              action="ark_helpdesk.action_window"/>
+    <menuitem name="Server to list" id="ark_helpdesk" parent="ark_helpdesk.menu_2"
+              action="ark_helpdesk.action_server"/>
+-->
+  </data>
+</odoo>
