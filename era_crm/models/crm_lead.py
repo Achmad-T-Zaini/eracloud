@@ -93,7 +93,7 @@ class Lead(models.Model):
                 for line in to_upd_seq:
                     line.update({'order_sequence': section.order_sequence}) 
                 line_product = self.order_line.filtered(lambda x: x.order_sequence==section.order_sequence and x.product_id and x.order_type==section.order_type )
-#                raise UserError(_('line %s')%(line_product))
+#                raise UserError(_('line %s\n%s')%(to_upd_seq,line_product))
                 line_subtotal = sum(line.product_uom_qty*line.crm_price_unit for line in line_product) or 0
                 if line_product:
                     pto_update = self.summary_order_line.filtered(lambda l: l.order_sequence ==section.order_sequence and l.order_type==section.order_type)
