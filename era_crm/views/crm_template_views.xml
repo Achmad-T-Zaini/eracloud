@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <!-- Views -->
+
+    <record model="ir.ui.view" id="crm_template_form_view">
+        <field name="name">crm.template.form</field>
+        <field name="model">crm.template</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                            <div class="oe_title">
+                                <h2>
+                                    <field name="name" />
+                                </h2>
+                            </div>
+                    <group>
+                        <group>
+                            <field name="recurrence_id" options="{ 'no_create': True}" attrs="{ 'invisible': [('type','=','tc')]}"/>
+                            <field name="type" invisible='1' />
+                            <field name="company_id" invisible='1' />
+                        </group>
+                    </group>
+                    <group attrs="{ 'invisible': [('type','!=','tc')]}">
+                        <field name="is_default_tc" />
+                        <field name="value_text" />
+                    </group>
+                    <group attrs="{ 'invisible': [('type','!=','product')]}">
+                        <field name="component">
+                            <tree editable="bottom">
+                                <field name="product_id" />
+                                <field name="product_uom_qty" />
+                                <field name="product_uom" />
+                                <field name="product_uom_category_id" invisible='1' />
+                                <field name="company_id" invisible='1' />
+                                <field name="recurrence_id" invisible="1"/>
+                                <field name="product_packaging_id" invisible='1' />
+                                <field name="product_packaging_qty" invisible='1' />
+                            </tree>
+                        </field>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="crm_template_action" model="ir.actions.act_window">
+        <field name="res_model">crm.template</field>
+        <field name="name">Order Template</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">[('type','=','product')]</field>
+        <field name="context">{ 'default_type': 'product',}</field>
+    </record>
+
+    <record id="crm_template_tc_action" model="ir.actions.act_window">
+        <field name="res_model">crm.template</field>
+        <field name="name">Terms and Conditions</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">[('type','=','tc')]</field>
+        <field name="context">{ 'default_type': 'tc',}</field>
+    </record>
+
+    <record model="ir.ui.menu" id="crm_templates_menu">
+        <field name="name">Templates</field>
+        <field name="parent_id" ref="crm.crm_menu_config" />
+        <field name="sequence" eval="50" />
+    </record>
+
+    <record model="ir.ui.menu" id="crm_template_tc_menu">
+        <field name="name">Term and Conditions</field>
+        <field name="parent_id" ref="crm_templates_menu" />
+        <field name="action" ref="crm_template_tc_action" />
+        <field name="sequence" eval="1" />
+    </record>
+
+    <record model="ir.ui.menu" id="crm_template_menu">
+        <field name="name">Order Template</field>
+        <field name="parent_id" ref="crm_templates_menu" />
+        <field name="action" ref="crm_template_action" />
+        <field name="sequence" eval="2" />
+    </record>
+
+</odoo>
