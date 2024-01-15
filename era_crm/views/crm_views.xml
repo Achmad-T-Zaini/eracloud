@@ -95,7 +95,7 @@
 -->
                                 </control>
 
-                                <field name="sequence" widget="handle" attrs="{'invisible': [('display_type', '=', 'line_subtotal')],}"/>
+                                <field name="sequence" widget="handle" attrs="{'invisible': [('display_type', '!=', False)],}"/>
                                 <!-- We do not display the type because we don't want the user to be bothered with that information if he has no section or note. -->
                                 <field name="order_sequence" invisible="1"/>
                                 <field name="display_type" invisible="1"/>
@@ -220,6 +220,10 @@
                                     attrs="{'readonly': ['|',('qty_invoiced', '&gt;', 0),('display_type', '=', 'line_subtotal')]}"
                                 />
                                 <field
+                                    name="crm_price_unit" string='crm price' force_save="1"
+                                    attrs="{'readonly': ['|',('qty_invoiced', '&gt;', 0),('display_type', '=', 'line_subtotal')]}"
+                                />
+                                <field
                                     name="tax_id"
                                     widget="many2many_tags"
                                     options="{'no_create': True}"
@@ -232,6 +236,7 @@
                                     attrs="{'readonly': [('display_type', '=', 'line_subtotal')],}"/>
                                 <field name="is_downpayment" invisible="1"/>
                                 <field name="price_subtotal" widget="monetary" groups="account.group_show_line_subtotals_tax_excluded" attrs="{'invisible': [('is_downpayment', '=', True)]}"/>
+                                <field name="crm_price_subtotal" string="crm subtotal" widget="monetary" groups="account.group_show_line_subtotals_tax_excluded" attrs="{'invisible': [('is_downpayment', '=', True)]}"/>
                                 <field name="price_total" widget="monetary" groups="account.group_show_line_subtotals_tax_included" attrs="{'invisible': [('is_downpayment', '=', True)]}"/>
                                 <field name="state" invisible="1"/>
                                 <field name="invoice_status" invisible="1"/>

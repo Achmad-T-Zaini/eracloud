@@ -85,6 +85,62 @@ class SaleOrderLine(models.Model):
     order_sequence = fields.Float(string='Order Sequence', default=0.0)
     recurrence_id = fields.Many2one('sale.temporal.recurrence', string='Recurrence', )
 
+    crm_price_unit = fields.Float(
+        string="Unit Price",
+        compute='_compute_price_unit',
+        digits='Product Price',
+        store=True, readonly=False, required=True, precompute=True)
+    crm_price_subtotal = fields.Monetary(
+        string="Subtotal",
+        compute='_compute_amount',
+        store=True, precompute=True)
+
+    def _convert_to_tax_base_line_dict_crm(self):
+        """ Convert the current record to a dictionary in order to use the generic taxes computation method
+        defined on account.tax.
+
+        :return: A python dictionary.
+        """
+        self.ensure_one()
+        return self.env['account.tax']._convert_to_tax_base_line_dict(
+            self,
+            partner=self.order_id.partner_id,
+            currency=self.order_id.currency_id,
+            product=self.product_id,
+            taxes=self.tax_id,
+            price_unit=self.crm_price_unit,
+            quantity=self.product_uom_qty,
+            discount=self.discount,
+            price_subtotal=self.crm_price_subtotal,
+        )
+
+    def _compute_amount(self):
+        """
+        Compute the amounts of the SO line.
+        """
+        for line in self:
+            tax_results = self.env['account.tax']._compute_taxes([line._convert_to_tax_base_line_dict()])
+            totals = list(tax_results['totals'].values())[0]
+            amount_untaxed = totals['amount_untaxed']
+            amount_tax = totals['amount_tax']
+
+            line.update({
+                'price_subtotal': amount_untaxed,
+                'price_tax': amount_tax,
+                'price_total': amount_untaxed + amount_tax,
+            })
+
+            crm_tax_results = self.env['account.tax']._compute_taxes([line._convert_to_tax_base_line_dict_crm()])
+            crm_totals = list(crm_tax_results['totals'].values())[0]
+            crm_amount_untaxed = crm_totals['amount_untaxed']
+            crm_amount_tax = crm_totals['amount_tax']
+
+            line.update({
+                'crm_price_subtotal': crm_amount_untaxed,
+#                'price_tax': crm_amount_tax,
+#                'crm_price_total': crm_amount_untaxed + crm_amount_tax,
+            })
+
     def _compute_price_unit(self):
         for line in self:
             # check if there is already invoiced amount. if so, the price shouldn't change as it might have been
@@ -94,9 +150,22 @@ class SaleOrderLine(models.Model):
                     continue
                 if not line.product_uom or not line.product_id or not line.order_id.pricelist_id:
                     line.price_unit = 0.0
+                    line.crm_price_unit = 0.0
                 else:
-                    price = line.with_company(line.company_id)._get_display_price()
-                    line.price_unit = line.product_id._get_tax_included_unit_price(
+                    if line.crm_price_unit==0:
+                        price = line.with_company(line.company_id)._get_display_price()
+                    else:
+                        price=line.crm_price_unit
+#                    line.price_unit = line.product_id._get_tax_included_unit_price(
+#                        line.company_id,
+#                        line.order_id.currency_id,
+#                        line.order_id.date_order,
+#                        'sale',
+#                        fiscal_position=line.order_id.fiscal_position_id,
+#                        product_price_unit=price,
+#                        product_currency=line.currency_id
+#                    )
+                    line.crm_price_unit = line.product_id._get_tax_included_unit_price(
                         line.company_id,
                         line.order_id.currency_id,
                         line.order_id.date_order,

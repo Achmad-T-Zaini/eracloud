@@ -76,27 +76,32 @@ class Lead(models.Model):
         if self.order_id:
             line_section = self.order_line.filtered(lambda x: x.display_type=='line_section')
             line_subtotal = self.order_line.filtered(lambda x: x.display_type=='line_subtotal')
-            if line_section:
+            if line_section and len(line_section)>len(line_subtotal):
+#                raise UserError(_('section %s')%(line_section,))
                 to_remove = self.summary_order_line.filtered(lambda l: l.order_sequence not in [line_section.order_sequence])
                 if to_remove:
                     self.summary_order_line = [(3,l.id) for l in to_remove]
                     to_remove = self.order_line.filtered(lambda l: l.order_sequence not in [line_section.order_sequence])
                     self.order_line = [(3,tr.id) for tr in to_remove]
-            else:
+            elif not line_section:
                 self.summary_order_line = [(6,0,[])]
                 self.order_line = [(6,0,[])]
                     
             for section in line_subtotal:
+                line_header = self.order_line.filtered(lambda x: x.display_type=='line_section' and x.order_sequence==section.order_sequence)
+                to_upd_seq =  self.order_line.filtered(lambda x: x.sequence>=line_header.sequence and x.sequence<=section.sequence)
+                for line in to_upd_seq:
+                    line.update({'order_sequence': section.order_sequence}) 
                 line_product = self.order_line.filtered(lambda x: x.order_sequence==section.order_sequence and x.product_id and x.order_type==section.order_type )
 #                raise UserError(_('line %s')%(line_product))
-                line_subtotal = sum(line.product_uom_qty*line.price_unit for line in line_product) or 0
-                if line_product and line_subtotal>0:
+                line_subtotal = sum(line.product_uom_qty*line.crm_price_unit for line in line_product) or 0
+                if line_product:
                     pto_update = self.summary_order_line.filtered(lambda l: l.order_sequence ==section.order_sequence and l.order_type==section.order_type)
                     if pto_update:
                         pto_update.write({'product_uom_qty': section.product_uom_qty,'price_unit': line_subtotal,})
                     sol_update = self.order_line.filtered(lambda l: l.order_sequence ==section.order_sequence and l.order_type==section.order_type and l.display_type=='line_subtotal')
                     if sol_update:
-                        sol_update.write({'price_unit': line_subtotal,})
+                        sol_update.write({'price_unit': line_subtotal,'crm_price_unit': line_subtotal,})
 
     def action_get_template(self):
         if self.order_template_id:
@@ -113,7 +118,7 @@ class Lead(models.Model):
             for line in self.order_template_id.component:
                 if order_type!=line.order_type:
                     order_line.append((0,0,{ 'name': self.order_template_id.name + ' ' + order_type.capitalize() + ' Subtotal', 
-                                            'product_uom_qty': 1, 'price_unit': subtotal,'sequence': sequence, 'order_type': order_type,
+                                            'product_uom_qty': 1, 'price_unit': subtotal,'crm_price_unit': subtotal,'sequence': sequence, 'order_type': order_type,
                                             'display_type': 'line_subtotal','order_sequence': order_sequence, 
                                             'recurrence_id': self.order_template_id.recurrence_id.id}))
                     summary_order_line.append((0,0,{ 'name': self.order_template_id.name + ' ' + order_type.capitalize(), 
@@ -125,7 +130,7 @@ class Lead(models.Model):
                 subtotal += line.product_uom_qty * max(line.product_id.list_price,line.product_id.lst_price)
                 sequence+=1
             order_line.append((0,0,{ 'name': self.order_template_id.name + ' ' + order_type.capitalize() + ' Subtotal', 
-                                            'product_uom_qty': 1, 'price_unit': subtotal,'sequence': sequence, 'order_type': order_type,
+                                            'product_uom_qty': 1, 'price_unit': subtotal,'crm_price_unit': subtotal,'sequence': sequence, 'order_type': order_type,
                                             'display_type': 'line_subtotal','order_sequence': order_sequence,
                                             'recurrence_id': self.order_template_id.recurrence_id.id}))
             summary_order_line.append((0,0,{ 'name': self.order_template_id.name + ' ' + order_type.capitalize(), 
