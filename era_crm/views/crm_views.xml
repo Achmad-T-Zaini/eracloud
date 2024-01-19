@@ -245,14 +245,17 @@
                                 <field name="company_id" invisible="1"/>
                                 <field name="tax_country_id" invisible="1"/>
                                 <field name="recurrence_id" invisible="1"/>
+                                <field name="product_categ_id" invisible="1"/>
                             </tree>
                         </field>
+<!--
                         <group name="note_group" col="6" class="mt-2 mt-md-0">
                             <group class="oe_subtotal_footer oe_right" colspan="2" name="sale_total">
                                 <field name="tax_totals" widget="account-tax-totals-field" nolabel="1" colspan="2" readonly="1"/>
                             </group>
                             <div class="clearfix"/>
                         </group>
+-->
                 </page>
                 <page string="Order Summary" name="summary_order_lines" attrs="{ 'invisible': [('order_id','=',False)]}">
                     <field name="summary_order_line" mode="tree" >

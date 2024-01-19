@@ -155,6 +155,7 @@
                                 <field name="price_tax" invisible="1"/>
                                 <field name="company_id" invisible="1"/>
                                 <field name="recurrence_id" invisible="1"/>
+                                <field name="product_categ_id" invisible="1"/>
                             </tree>
             </xpath>
 

@@ -67,6 +67,7 @@ class CRMTemplateLine(models.Model):
         string="Packaging Quantity",
         compute='_compute_product_packaging_qty',
         store=True, readonly=False, precompute=True)
+    product_categ_id = fields.Many2one('product.category', related="product_id.categ_id" ,string='Product Category', required=True, store=True)
 
     @api.depends('product_id')
     def _compute_product_uom_qty(self):

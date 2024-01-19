@@ -35,6 +35,7 @@
                                 <field name="recurrence_id" invisible="1"/>
                                 <field name="product_packaging_id" invisible='1' />
                                 <field name="product_packaging_qty" invisible='1' />
+                                <field name="product_categ_id" invisible='1' />
                             </tree>
                         </field>
                     </group>

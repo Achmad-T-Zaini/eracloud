@@ -52,7 +52,7 @@ class SaleOrder(models.Model):
 
 class SaleOrderLine(models.Model):
     _inherit = 'sale.order.line'
-    _order = 'order_id, order_sequence, sequence, order_type, id'
+    _order = 'order_id, order_sequence, sequence, product_categ_id, id'
 
     _sql_constraints = [
         ('accountable_required_fields',
@@ -95,6 +95,21 @@ class SaleOrderLine(models.Model):
         string="Subtotal",
         compute='_compute_amount',
         store=True, precompute=True)
+    product_categ_id = fields.Many2one('product.category',string='Product Category', required=True, store=True)
+
+
+    @api.onchange('display_type','product_id')
+    def _onchange_display_type_era(self):
+        if self.display_type=='line_section' and not self.order_sequence:
+            order_sequence = self.order_id.order_line.sorted(key='order_sequence', reverse=True)[0].order_sequence
+            self.order_sequence = order_sequence+1
+        elif self.product_id and not self.order_sequence:
+#            order_sequence = self.order_id.order_line.sorted(key='order_sequence', reverse=True)[0].order_sequence+1
+#            self.order_sequence = order_sequence
+            self.product_categ_id = self.product_id.categ_id.id
+        self.lead_id._calculate_subtotal(self)
+#            raise UserError(_('vals %s \n %s')%(self.order_sequence,self.product_id.detailed_type))
+
 
     def _convert_to_tax_base_line_dict_crm(self):
         """ Convert the current record to a dictionary in order to use the generic taxes computation method
@@ -157,15 +172,7 @@ class SaleOrderLine(models.Model):
                         price = line.with_company(line.company_id)._get_display_price()
                     else:
                         price=line.crm_price_unit
-#                    line.price_unit = line.product_id._get_tax_included_unit_price(
-#                        line.company_id,
-#                        line.order_id.currency_id,
-#                        line.order_id.date_order,
-#                        'sale',
-#                        fiscal_position=line.order_id.fiscal_position_id,
-#                        product_price_unit=price,
-#                        product_currency=line.currency_id
-#                    )
+
                     line.crm_price_unit = line.product_id._get_tax_included_unit_price(
                         line.company_id,
                         line.order_id.currency_id,
@@ -196,6 +203,7 @@ class SaleOrderLine(models.Model):
             vals.update({'order_type': product_id.detailed_type,})
         if vals.get('display_type',False) and vals['display_type']=='line_subtotal':
             vals.update({'product_uom_qty': 1,})
-#            raise UserError(_('vals %s \n %s')%(vals,product_id.detailed_type))
+#        raise UserError(_('vals %s \n %s')%(vals,product_id.detailed_type))
+            
         return super().create(vals)
     

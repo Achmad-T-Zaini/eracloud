@@ -16,6 +16,8 @@
         "views/sale_views.xml",
         "views/stock_views.xml",
         "views/crm_template_views.xml",
+        "report/crm_quotation.xml",
+        "report/crm_quotation_templates.xml",
     ],
     "auto_install": False,
     "installable": True,
