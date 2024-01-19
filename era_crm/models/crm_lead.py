@@ -134,7 +134,7 @@ class Lead(models.Model):
                                             'product_categ_id': order_line.product_categ_id.id,
                                             'lead_id': self.id,
                                             'order_id': self.order_id.id,
-                                            'recurrence_id': order_line.product_id.product_pricing_ids[0].recurrence_id.id or False,
+                                            'recurrence_id': order_line.product_id.product_pricing_ids[0].recurrence_id.id if order_line.product_id.recurring_invoice else False,
                                             }
                 summary_order_line = {'name': name, 
                                             'product_uom_qty': 1, 
@@ -143,7 +143,7 @@ class Lead(models.Model):
                                             'product_categ_id': order_line.product_categ_id.id,
                                             'order_sequence': order_line.order_sequence,  
                                             'lead_id': self.id,
-                                            'recurrence_id': order_line.product_id.product_pricing_ids[0].recurrence_id.id or False,
+                                            'recurrence_id': order_line.product_id.product_pricing_ids[0].recurrence_id.id if order_line.product_id.recurring_invoice else False,
                                             }
 #                raise UserError(_('new subtotal %s\n%s')%(order_line,new_subtotal))
                 ord_line = self.env['sale.order.line'].create(new_order_line)
