@@ -52,13 +52,22 @@
             <table class="table table-sm o_main_table mt-4" style="width: 100%;border:1px solid;border-collapse: collapse; padding: 5px 5px 5px 5px;">
                 <tr >
                     <td class="text-center" style="width: 20%; padding: 5px 5px 5px 5px;">To</td>
-                    <td class="text-center" style="width: 30%; padding: 5px 5px 5px 5px;"><span t-esc="doc.lead_id.title.name + ' ' + doc.lead_id.contact_name"/></td>
+                    <t t-if="doc.lead_id.title">
+                        <td class="text-center" style="width: 30%; padding: 5px 5px 5px 5px;"><span t-esc="doc.lead_id.title.name + ' ' + doc.lead_id.contact_name"/></td>
+                    </t>
+                    <t t-elif="not doc.lead_id.title">
+                        <td class="text-center" style="width: 30%; padding: 5px 5px 5px 5px;"><span t-esc="doc.lead_id.contact_name"/></td>
+                    </t>
                     <td class="text-center" style="padding: 5px 5px 5px 5px;">Quotation No </td>
                     <td class="text-center"  style="padding: 5px 5px 5px 5px;" colspan="2"><span t-field="doc.name"/></td>
                 </tr>
                 <tr>
                     <td class="text-center" style="width: 20%;padding: 5px 5px 5px 5px;">Company Name</td>
-                    <td class="text-center" style="width: 30%;padding: 5px 5px 5px 5px;"><span t-field="doc.partner_id.name"/></td>
+                    <td class="text-center" style="width: 30%;padding: 5px 5px 5px 5px;">
+                        <t t-if="doc.partner_id">
+                            <span t-field="doc.partner_id.name"/>
+                        </t>
+                    </td>
                     <td class="text-center" style="padding: 5px 5px 5px 5px;">Date </td>
                     <td class="text-center" style="padding: 5px 5px 5px 5px;" colspan="2"><span t-esc="doc.date_order.strftime('%d %B %Y')"/></td>
                 </tr>
