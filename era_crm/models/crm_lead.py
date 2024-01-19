@@ -292,13 +292,12 @@ class Lead(models.Model):
                 if line[2]!=False:
                     line[2].update({'order_id': self.order_id.id,})
         res = super().write(vals)
-        order_sequence = self.order_id.order_line.sorted(key='order_sequence', reverse=True)[0].order_sequence
-#        order_sequence = len(self.order_line.filtered(lambda l: l.display_type=='line_section'))
-        sol = self.order_line.filtered(lambda l: l.order_sequence==0)
-        for line in sol:
-            line.write({'order_sequence': order_sequence,})
-            self._calculate_subtotal(line)
-#        self._onchange_order_line()
+        if self.order_id.order_line:
+            order_sequence = self.order_id.order_line.sorted(key='order_sequence', reverse=True)[0].order_sequence
+            sol = self.order_line.filtered(lambda l: l.order_sequence==0)
+            for line in sol:
+                line.write({'order_sequence': order_sequence,})
+                self._calculate_subtotal(line)
         return res
 
 class Lead(models.Model):
