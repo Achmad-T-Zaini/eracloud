@@ -109,7 +109,7 @@ class SaleOrderLine(models.Model):
 #            order_sequence = self.order_id.order_line.sorted(key='order_sequence', reverse=True)[0].order_sequence+1
 #            self.order_sequence = order_sequence
             self.product_categ_id = self.product_id.categ_id.id
-        self.lead_id._calculate_subtotal(self)
+            self.lead_id._calculate_subtotal(self)
 #            raise UserError(_('vals %s \n %s')%(self.order_sequence,self.product_id.detailed_type))
 
 
