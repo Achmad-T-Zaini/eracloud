@@ -101,7 +101,9 @@ class SaleOrderLine(models.Model):
     @api.onchange('display_type','product_id')
     def _onchange_display_type_era(self):
         if self.display_type=='line_section' and not self.order_sequence:
-            order_sequence = self.order_id.order_line.sorted(key='order_sequence', reverse=True)[0].order_sequence
+            order_sequence = 0
+            if self.order_id.order_line:
+                order_sequence = self.order_id.order_line.sorted(key='order_sequence', reverse=True)[0].order_sequence
             self.order_sequence = order_sequence+1
         elif self.product_id and not self.order_sequence:
 #            order_sequence = self.order_id.order_line.sorted(key='order_sequence', reverse=True)[0].order_sequence+1

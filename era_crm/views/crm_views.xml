@@ -282,6 +282,14 @@
                                 <field colspan="2" name="term_condition" nolabel="1" placeholder="Terms and conditions..."/>
                             </group>
                 </page>
+                <page string="Pre-Sales / Operations" name="pre_sales" attrs="{ 'invisible': [('order_id','=',False)], 'readonly': [('is_won','=',True)]}">
+                    <group string="Pre-Sales">
+                        <span> Request Trial / POC  to Pre-Sales Team </span>
+                    </group>
+                    <group string="Operations">
+                        <span> Request Implementation to Operations Team </span>
+                    </group>
+                </page>
             </page>
         </field>
     </record>
