@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+        <record id="group_inside_sales" model="res.groups">
+            <field name="name">Inside Sales</field>
+            <field name="category_id" ref="base.module_category_sales_sales"/>
+            <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+            <field name="comment">the user will have access to his own data in the sales application.</field>
+        </record>
+
+    <record id="crm_rule_inside_sales" model="ir.rule">
+        <field name="name">Inside Sales Leads</field>
+        <field ref="model_crm_lead" name="model_id"/>
+        <field name="domain_force">[('create_uid','=',user.id)]</field>
+        <field name="groups" eval="[(4, ref('era_crm.group_inside_sales'))]"/>
+    </record>
+
+</odoo>

@@ -13,9 +13,17 @@ from odoo.tools import get_timedelta
 class Lead(models.Model):
     _inherit = "crm.lead"
 
+    def _get_domain_team(self):
+        domain = [('share', '=', False), ('company_ids', 'in', self.team_id.member_company_ids.ids,)]
+        if self.team_id:
+            users = self.env['res.users'].search([('id','=',self.team_id.member_ids.ids)])
+            domain = [('share', '=', False), ('company_ids', 'in', self.team_id.member_company_ids.ids,),('id', 'in', users.ids)]
+        return domain      
+
     user_id = fields.Many2one(
         'res.users', string='Salesperson', default=lambda self: self.env.user,
         domain="['&', ('share', '=', False), ('company_ids', 'in', user_company_ids)]",
+#        domain=_get_domain_team,
         check_company=True, index=True, tracking=True)
     currency_id = fields.Many2one('res.currency', string='Currency',
                                   required=True, readonly=True,
@@ -292,7 +300,7 @@ class Lead(models.Model):
                 if line[2]!=False:
                     line[2].update({'order_id': self.order_id.id,})
         res = super().write(vals)
-        if self.order_id.order_line:
+        if self.order_id and self.order_id.order_line:
             order_sequence = self.order_id.order_line.sorted(key='order_sequence', reverse=True)[0].order_sequence
             sol = self.order_line.filtered(lambda l: l.order_sequence==0)
             for line in sol:

@@ -10,12 +10,9 @@
 
                 <button name="action_sale_quotations_new" position="replace">
                 </button>
-<!--
-                <button name="action_view_sale_quotation" position="replace"/>
--->
+
             </field>
         </record>
-
 
     <record model="ir.ui.view" id="crm_lead_form_view_inherit">
         <field name="name">crm.lead.form.inherit</field>
@@ -33,6 +30,14 @@
                     attrs="{'invisible': ['|',('sale_order_count','>=',1),('is_won', '!=', True)]}"/>
 -->
             </button>
+
+            <xpath expr="//group[@name='lead_info']" position="inside">
+                <field name="create_uid" string="Sales Lead by" widget="many2one_avatar_user" readonly="1" force_save="1" attrs="{ 'invisible': [('type','!=', 'lead')]}"/>
+            </xpath>
+
+            <xpath expr="//group[@name='Misc']/field[@name='team_id']" position="after">
+                <field name="create_uid" string="Sales Lead by" widget="many2one_avatar_user" readonly="1" force_save="1" />
+            </xpath>
 
             <field name="company_id" position="after">
                 <field name="fiscal_position_id" invisible="1"/>
