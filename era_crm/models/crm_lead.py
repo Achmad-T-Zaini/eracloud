@@ -102,7 +102,7 @@ class Lead(models.Model):
                 section.crm_price_unit = 0
                 section.price_unit = 0
                 line_header = self.order_line.filtered(lambda x: x.display_type=='line_section' and x.order_sequence==section.order_sequence)
-                to_upd_seq =  self.order_line.filtered(lambda x: x.sequence>=line_header.sequence and x.sequence<=section.sequence)
+                to_upd_seq =  self.order_line.filtered(lambda x: x.sequence>=line_header[0].sequence and x.sequence<=section.sequence)
                 for line in to_upd_seq:
                     line.update({'order_sequence': section.order_sequence}) 
                 line_product = self.order_line.filtered(lambda x: x.order_sequence==section.order_sequence and x.product_id and x.product_categ_id.id==section.product_categ_id.id )
