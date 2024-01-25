@@ -9,6 +9,24 @@ class SaleOrder(models.Model):
 
     manufacture_id = fields.Many2one('mrp.production', string='Manufacture Order', readonly=True)
     lead_id = fields.Many2one('crm.lead', string='CRM Lead', readonly=True)
+    quotation_no = fields.Char(string='Quotation', store=True, readonly=True)
+    quotation_rev = fields.Integer(string='Rev.', store=True, readonly=True, default=1)
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            if 'company_id' in vals:
+                self = self.with_company(vals['company_id'])
+            if vals.get('name', _("New")) == _("New"):
+                seq_date = fields.Datetime.context_timestamp(
+                    self, fields.Datetime.to_datetime(vals['date_order'])
+                ) if 'date_order' in vals else None
+                vals['name'] = "New CRM"
+                vals['quotation_no']= self.env['ir.sequence'].next_by_code(
+                    'quotation.sequence', sequence_date=seq_date) or _("New")
+
+        return super().create(vals_list)
+
 
     def action_confirm(self):
         res = super().action_confirm()

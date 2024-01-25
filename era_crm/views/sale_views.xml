@@ -7,9 +7,24 @@
         <field name="inherit_id" ref="sale.view_order_form"/>
         <field name="arch" type="xml">
 
+            <xpath expr="////div[hasclass('oe_title')]" position="replace">
+                <div class="oe_title">
+                    <h1>
+                        <field name="name" readonly="1" attrs="{ 'invisible': ['|',('lead_id','!=',False),('state','=','draft')]}"/>
+                        <field name="quotation_no" readonly="1" attrs="{ 'invisible': ['|',('lead_id','=',False),('state','!=','draft')]}"/>
+                    </h1>
+                </div>
+            </xpath>
+
             <xpath expr="//group[@name='sale_shipping']" position="inside">
                 <field name="manufacture_id" />
                 <field name="amount_total" />
+            </xpath>
+
+            <xpath expr="//field[@name='origin']" position="before">
+                <field name="quotation_no" />
+                <field name="quotation_rev" />
+                <field name="lead_id" invisible="1" />
             </xpath>
 
 <!--

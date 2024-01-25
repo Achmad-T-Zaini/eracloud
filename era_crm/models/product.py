@@ -47,3 +47,10 @@ class ProductTemplate(models.Model):
                 'message': _("You can not change the recurring property of this product because it has been sold already as a subscription.")
             }}
 
+class MrpBom(models.Model):
+    """ Defines bills of material for a product or a product template """
+    _inherit = 'mrp.bom'
+
+    recurrence_id = fields.Many2one('sale.temporal.recurrence', string='Recurrence', ondelete='restrict', readonly=False, store=True)
+
+

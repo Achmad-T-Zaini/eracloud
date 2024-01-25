@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data>
+        <!-- EAD -->
+        <record model="ir.sequence" id="era_quotation_sequence">
+            <field name="name">EAD Quotation Sequence</field>
+            <field name="implementation">no_gap</field>
+            <field name="active">1</field>
+            <field name="company_id">1</field>
+            <field name="code">quotation.sequence</field>
+            <field name="padding">5</field>
+            <field name="use_date_range">1</field>
+        </record>
+        <!-- EDM -->
+        <record model="ir.sequence" id="edm_quotation_sequence">
+            <field name="name">EDM Quotation Sequence</field>
+            <field name="implementation">no_gap</field>
+            <field name="active">True</field>
+            <field name="company_id">2</field>
+            <field name="code">quotation.sequence</field>
+            <field name="padding">5</field>
+            <field name="use_date_range">1</field>
+        </record>
+    </data>
+</odoo>

@@ -10,4 +10,16 @@
             </field>
         </field>
     </record>
+
+    <record id="mrp_bom_form_view_era" model="ir.ui.view">
+        <field name="name">mrp.bom.form.era</field>
+        <field name="model">mrp.bom</field>
+        <field name="inherit_id" ref="mrp.mrp_bom_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form/sheet/group/group[1]" position="inside">
+                <field name="recurrence_id" options="{ 'no_create': True}"/>
+            </xpath>
+        </field>
+    </record>
+
 </odoo>

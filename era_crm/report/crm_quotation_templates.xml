@@ -59,7 +59,7 @@
                         <td class="text-center" style="width: 30%; padding: 5px 5px 5px 5px;"><span t-esc="doc.lead_id.contact_name"/></td>
                     </t>
                     <td class="text-center" style="padding: 5px 5px 5px 5px;">Quotation No </td>
-                    <td class="text-center"  style="padding: 5px 5px 5px 5px;" colspan="2"><span t-field="doc.name"/></td>
+                    <td class="text-center"  style="padding: 5px 5px 5px 5px;" colspan="2"><span t-field="doc.quotation_no"/></td>
                 </tr>
                 <tr>
                     <td class="text-center" style="width: 20%;padding: 5px 5px 5px 5px;">Company Name</td>
@@ -160,15 +160,17 @@ First of all, we would like to thank your interest and the opportunity for us to
                     </t>
 
                     <t t-set="summary_subtotal" t-value="doc.lead_id.get_summary_subtotal()"/>
-                    <t t-foreach="summary_subtotal" t-as="summ">
-                        <tr>
-                            <td colspan="4" style="width: 20%;border:1px solid;padding: 5px 5px 5px 5px;text-align: right;">
-                                <span t-esc="summ['name']"/>
-                            </td>
-                            <td style="width: 20%;border:1px solid;padding: 5px 5px 5px 5px;text-align: right;">
-                                <span t-esc="line.currency_id.symbol + '{:{fill}{align}20,.2f}'.format(summ['total'],fill=' ',align='>')"/>
-                            </td>
-                        </tr>
+                    <t t-if="summary_subtotal">
+                        <t t-foreach="summary_subtotal" t-as="summ">
+                            <tr>
+                                <td colspan="4" style="width: 20%;border:1px solid;padding: 5px 5px 5px 5px;text-align: right;">
+                                    <span t-esc="summ['name']"/>
+                                </td>
+                                <td style="width: 20%;border:1px solid;padding: 5px 5px 5px 5px;text-align: right;">
+                                    <span t-esc="line.currency_id.symbol + '{:{fill}{align}20,.2f}'.format(summ['total'],fill=' ',align='>')"/>
+                                </td>
+                            </tr>
+                        </t>
                     </t>
                 </tbody>
             </table>

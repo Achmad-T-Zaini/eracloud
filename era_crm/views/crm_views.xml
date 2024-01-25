@@ -91,6 +91,7 @@
                             <tree
                                 string="Sales Order Lines"
                                 editable="bottom"
+                                decoration-info="display_type=='line_subtotal'"
                             >
                                 <control>
                                     <create name="add_product_control" string="Add a product"/>
@@ -271,7 +272,7 @@
                             <field name="discount" />
                             <field name="discount_type"/>
                             <field name="price_unit" widget="monetary" readonly="1" force_save="1"/>
-                            <field name="price_discount" widget="monetary" readonly="1" force_save="1"/>
+                            <field name="price_discount" widget="percentage" readonly="1" force_save="1"/>
                             <field name="price_subtotal" widget="monetary" readonly="1" force_save="1"/>
                             <field name="price_total" widget="monetary" readonly="1" force_save="1"/>
                         </tree>
