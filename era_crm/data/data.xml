@@ -4,6 +4,8 @@
         <!-- EAD -->
         <record model="ir.sequence" id="era_quotation_sequence">
             <field name="name">EAD Quotation Sequence</field>
+            <field name="prefix">QT-</field>
+            <field name="suffix">/%(era_code)s/EAD/%(rom_month)s/%(year)s</field>
             <field name="implementation">no_gap</field>
             <field name="active">1</field>
             <field name="company_id">1</field>
@@ -14,6 +16,8 @@
         <!-- EDM -->
         <record model="ir.sequence" id="edm_quotation_sequence">
             <field name="name">EDM Quotation Sequence</field>
+            <field name="prefix">QT-</field>
+            <field name="suffix">/%(era_code)s/EDM/%(rom_month)s/%(year)s</field>
             <field name="implementation">no_gap</field>
             <field name="active">True</field>
             <field name="company_id">2</field>

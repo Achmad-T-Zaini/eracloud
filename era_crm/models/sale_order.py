@@ -2,6 +2,7 @@
 
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError
+from odoo.tools import float_is_zero, float_compare, float_round
 
 
 class SaleOrder(models.Model):
@@ -22,9 +23,12 @@ class SaleOrder(models.Model):
                     self, fields.Datetime.to_datetime(vals['date_order'])
                 ) if 'date_order' in vals else None
                 vals['name'] = "New CRM"
-                vals['quotation_no']= self.env['ir.sequence'].next_by_code(
-                    'quotation.sequence', sequence_date=seq_date) or _("New")
-
+                era_code = 'SG'
+                if vals.get('lead_id',False):
+                    lead_id = self.env['crm.lead'].browse(vals['lead_id'])
+                    era_code = lead_id.team_id.team_initial + '-' + lead_id.user_id.partner_id.partner_initial
+                vals['quotation_no']= self.env['ir.sequence'].next_by_code_era(
+                    'quotation.sequence', era_code,sequence_date=seq_date) or _("New")
         return super().create(vals_list)
 
 
@@ -218,6 +222,7 @@ class SaleOrderLine(models.Model):
 
     @api.model
     def create(self, vals):
+        res = super().create(vals)
         if vals.get('product_id',False):
             product_id = self.env['product.product'].browse(vals['product_id'])
             vals.update({'order_type': product_id.detailed_type,})
@@ -225,5 +230,6 @@ class SaleOrderLine(models.Model):
             vals.update({'product_uom_qty': 1,})
 #        raise UserError(_('vals %s \n %s')%(vals,product_id.detailed_type))
             
-        return super().create(vals)
+        return res
+    
     

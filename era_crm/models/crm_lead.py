@@ -10,6 +10,21 @@ from odoo.osv import expression
 from odoo.tools import float_is_zero, float_compare, float_round
 from odoo.tools import get_timedelta
 
+class ResPartner(models.Model):
+    _inherit = "res.partner"
+
+    partner_initial = fields.Char(string='Initials', size=3)
+    _sql_constraints = [
+        (
+            'unique_partner_ny_initial', 'UNIQUE(partner_initial)', 'Only one Initial for Each Partner')
+    ]
+
+class CRMTeam(models.Model):
+    _inherit = "crm.team"
+
+    team_initial = fields.Char(string='Team Initials', size=3)
+
+
 class Lead(models.Model):
     _inherit = "crm.lead"
 
@@ -68,6 +83,11 @@ class Lead(models.Model):
 #        ('resubmit', 'Resubmit'),
 #        ('reject', 'Reject')], default='approve')
     
+    @api.onchange('order_id')
+    def _onchange_order_id(self):
+        if not self.order_id:
+            self.write({'summary_order_line': [(6,0,[])] })
+
     @api.onchange('team_id')
     def _onchange_team_id(self):
         self.user_id = False
@@ -122,24 +142,69 @@ class Lead(models.Model):
                     if sol_update:
                         sol_update.update({'price_unit': line_subtotal,'crm_price_unit': line_subtotal,})
 
-    def _calculate_subtotal(self,order_line=False):
-        new_subtotal = self.order_line.filtered(lambda x: x.display_type=='line_subtotal')
-        if not order_line:
-            for line in new_subtotal:
-                line_product = self.order_line.filtered(lambda x: x.order_sequence==line.order_sequence and x.product_categ_id.id==line.product_categ_id.id and x.product_id)
-                line_summary = self.summary_order_line.filtered(lambda x: x.order_sequence==line.order_sequence and x.product_categ_id.id==line.product_categ_id.id )
-                line.update({'discount': line_summary.price_discount*100,
+    def _update_subtotal(self,subtotal):
+            line_product = self.order_line.filtered(lambda x: x.order_sequence==subtotal.order_sequence and x.product_categ_id.id==subtotal.product_categ_id.id and x.product_id)
+            line_summary = self.summary_order_line.filtered(lambda x: x.order_sequence==subtotal.order_sequence and x.product_categ_id.id==subtotal.product_categ_id.id )
+            subtotal.update({'discount': line_summary.price_discount*100,
+                             'price_unit': sum(lp.crm_price_subtotal for lp in line_product),
                              'crm_price_unit': sum(lp.crm_price_subtotal for lp in line_product),})
-#                line_summary.update({'price_unit': sum(lp.crm_price_subtotal for lp in line_product),})
-                
-#                raise UserError(_('subtotal %s\n%s = %s')%(line,line.order_sequence,line.product_categ_id.name))
+
+
+    def _calculate_subtotal(self,order_line=False):
+        if not order_line:
+            line_section = self.order_line.filtered(lambda x: x.display_type=='line_section')
+            for line in line_section:
+                new_subtotal = self.order_line.filtered(lambda x: x.display_type=='line_subtotal' and x.order_sequence==line.order_sequence and x.product_categ_id==line.product_categ_id)
+                if new_subtotal:
+                    self._update_subtotal(line)
+                else:
+                    line_product = self.order_line.filtered(lambda x: x.order_sequence==line.order_sequence and x.product_categ_id.id==line.product_categ_id.id and x.product_id)
+                    if line_product:
+                        product_categ_id = False
+                        subtotal_value = 0
+                        for lp in line_product:
+                            if not product_categ_id:
+                                product_categ_id = lp.product_id.categ_id
+
+                            name = line.name + ' ' + lp.product_id.categ_id.name.capitalize()
+                            if order_line.product_id.recurring_invoice:
+                                name += ' ' + lp.product_id.product_pricing_ids[0].recurrence_id.name
+
+                            if product_categ_id!=lp.product_id.categ_id:
+                                vals_subtotal = { 'name':  name + ' Subtotal', 
+                                                'product_uom_qty': 1, 
+                                                'price_unit': subtotal_value,
+                                                'crm_price_unit': subtotal_value,
+                                                'sequence': lp.sequence+1, 
+                                                'order_type': lp.order_type,
+                                                'display_type': 'line_subtotal',
+                                                'order_sequence': line.order_sequence,  
+                                                'product_categ_id': lp.product_categ_id.id,
+                                                'lead_id': self.id,
+                                                'order_id': self.order_id.id,
+                                                'recurrence_id': lp.product_id.product_pricing_ids[0].recurrence_id.id if lp.product_id.recurring_invoice else False,
+                                                }
+                                                
+                                product_categ_id = lp.product_id.categ_id
+                                subtotal_value = 0
+                            else:
+                                subtotal_value += lp.crm_price_unit
+
+
+            new_subtotal = self.order_line.filtered(lambda x: x.display_type=='line_subtotal')
+            for line in new_subtotal:
+                self._update_subtotal(line)
         else:
             line_section = self.order_line.filtered(lambda x: x.display_type=='line_section' and x.order_sequence==order_line.order_sequence)
             if line_section.name and order_line.product_id:
                 name = line_section.name + ' ' + order_line.product_id.categ_id.name.capitalize()
                 if order_line.product_id.recurring_invoice:
                     name += ' ' + order_line.product_id.product_pricing_ids[0].recurrence_id.name
-                new_order_line = { 'name':  name + ' Subtotal', 
+                ord_line = self.env['sale.order.line'].create(self.prepare_order_line(name,order_line))
+                sum_ord_line = self.env['crm.order.summary'].create(self.prepare_summary_order_line(name,order_line))
+    
+    def prepare_order_line(self,name,order_line):
+        return { 'name':  name + ' Subtotal', 
                                             'product_uom_qty': 1, 
                                             'price_unit': order_line.price_unit,
                                             'crm_price_unit': order_line.price_unit,
@@ -152,7 +217,9 @@ class Lead(models.Model):
                                             'order_id': self.order_id.id,
                                             'recurrence_id': order_line.product_id.product_pricing_ids[0].recurrence_id.id if order_line.product_id.recurring_invoice else False,
                                             }
-                summary_order_line = {'name': name, 
+
+    def prepare_summary_order_line(self,name,order_line):
+        return {'name': name, 
                                             'product_uom_qty': 1, 
                                             'price_unit': order_line.price_unit,
                                             'order_type': order_line.order_type,
@@ -161,9 +228,6 @@ class Lead(models.Model):
                                             'lead_id': self.id,
                                             'recurrence_id': order_line.product_id.product_pricing_ids[0].recurrence_id.id if order_line.product_id.recurring_invoice else False,
                                             }
-#                raise UserError(_('new subtotal %s\n%s')%(order_line,new_subtotal))
-                ord_line = self.env['sale.order.line'].create(new_order_line)
-                sum_ord_line = self.env['crm.order.summary'].create(summary_order_line)
 
     def get_summary_subtotal(self):
         data = []
@@ -321,6 +385,9 @@ class Lead(models.Model):
         new_subtotal = self.order_line.filtered(lambda x: x.display_type=='line_subtotal')
         if new_subtotal:
             for line in new_subtotal:
+                if line.product_uom_qty==0:
+                    line.product_uom_qty = 1
+#                raise UserError(_('vals %s\n%s = %s')%(vals,line.name,line.product_uom_qty))
                 line_product = self.order_line.filtered(lambda x: x.order_sequence==line.order_sequence and x.product_categ_id.id==line.product_categ_id.id and x.product_id)
                 line_summary = self.summary_order_line.filtered(lambda x: x.order_sequence==line.order_sequence and x.product_categ_id.id==line.product_categ_id.id )
                 line_summary.update({'price_unit': sum(lp.crm_price_subtotal for lp in line_product),})
@@ -400,7 +467,7 @@ class Lead(models.Model):
             
             if discount>0 and line.price_unit>0:
                 price_discount = discount / line.price_unit
-                price_subtotal = (line.price_unit-discount) * line.product_uom_qty
+            price_subtotal = (line.price_unit-discount) * line.product_uom_qty
 
             line.update({
                 'price_subtotal': price_subtotal,

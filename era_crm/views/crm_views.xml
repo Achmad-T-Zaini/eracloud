@@ -2,6 +2,35 @@
 
 <odoo>
 
+        <record id="view_partner_form_inherit_era" model="ir.ui.view">
+            <field name="name">res.partner.form.inherited.era</field>
+            <field name="model">res.partner</field>
+            <field name="inherit_id" ref="base.view_partner_form"/>
+            <field name="arch" type="xml">
+
+            <field name="title" position="after">
+                <field name="partner_initial" />
+            </field>
+
+            </field>
+        </record>
+
+        <record id="crm_team_view_form_inherit_era" model="ir.ui.view">
+            <field name="name">crm.team.form.inherited.era</field>
+            <field name="model">crm.team</field>
+            <field name="inherit_id" ref="sales_team.crm_team_view_form"/>
+            <field name="arch" type="xml">
+
+            <xpath expr="////div[hasclass('oe_title')]" position="after">
+                    <label for="team_initial" string="Initial" />
+                    <div colspan="2" >
+                        <field name="team_initial"/>
+                    </div>
+                </xpath>
+
+            </field>
+        </record>
+
         <record id="crm_case_form_view_oppor_inherit_era" model="ir.ui.view">
             <field name="name">crm.lead.oppor.inherited.era</field>
             <field name="model">crm.lead</field>

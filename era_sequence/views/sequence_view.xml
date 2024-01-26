@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="sequence_view_inherit" model="ir.ui.view">
+        <field name="name">ir.sequence.inherit</field>
+        <field name="model">ir.sequence</field>
+        <field name="inherit_id" ref="base.sequence_view" />
+        <field name="arch" type="xml">
+            <xpath expr="//form//page//group[3]" position="after">
+                <group>
+                    <span colspan="2">Current Year with Century (Roman): %%(rom_year)s</span>
+                    <span colspan="2">Current Year without Century (Roman): %%(rom_y)s</span>
+                    <span colspan="2">Month (Roman): %%(rom_month)s</span>
+                    <span colspan="2">Day (Roman): %%(rom_day)s</span>
+                </group>
+
+                <group>
+                    <span colspan="2">Era Code: %%(era_code)s</span>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>
