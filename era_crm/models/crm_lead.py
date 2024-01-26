@@ -84,7 +84,8 @@ class Lead(models.Model):
 
 
     @api.onchange('order_id', 'order_id.order_line', 'order_id.order_line.product_id','order_id.order_line.product_uom_qty','order_id.order_line.price_unit','order_id.order_line.discount',
-            'order_line','order_line.product_uom_qty','order_line.price_unit','order_line.discount','order_line.product_id','expected_revenue', 'order_id.amount_total')        
+            'order_line','order_line.product_uom_qty','order_line.price_unit','order_line.discount','order_line.product_id','expected_revenue', 'order_id.amount_total',
+            'order_line.crm_price_unit','order_id.order_line.crm_price_unit',)        
     def _onchange_order_line(self):
         if self.order_id:
             line_section = self.order_line.filtered(lambda x: x.display_type=='line_section')
@@ -116,17 +117,21 @@ class Lead(models.Model):
                 if line_product:
                     pto_update = self.summary_order_line.filtered(lambda l: l.order_sequence ==section.order_sequence and l.product_categ_id.id==section.product_categ_id.id)
                     if pto_update:
-                        pto_update.write({'product_uom_qty': section.product_uom_qty,'price_unit': line_subtotal,})
+                        pto_update.update({'product_uom_qty': section.product_uom_qty,'price_unit': line_subtotal,})
                     sol_update = self.order_line.filtered(lambda l: l.order_sequence ==section.order_sequence and l.product_categ_id.id==section.product_categ_id.id and l.display_type=='line_subtotal')
                     if sol_update:
-                        sol_update.write({'price_unit': line_subtotal,'crm_price_unit': line_subtotal,})
+                        sol_update.update({'price_unit': line_subtotal,'crm_price_unit': line_subtotal,})
 
     def _calculate_subtotal(self,order_line=False):
         new_subtotal = self.order_line.filtered(lambda x: x.display_type=='line_subtotal')
         if not order_line:
             for line in new_subtotal:
-                line_subtotal = self.summary_order_line.filtered(lambda x: x.order_sequence==line.order_sequence and x.product_categ_id.id==line.product_categ_id.id )
-                line.update({ 'discount': line_subtotal.price_discount*100,})
+                line_product = self.order_line.filtered(lambda x: x.order_sequence==line.order_sequence and x.product_categ_id.id==line.product_categ_id.id and x.product_id)
+                line_summary = self.summary_order_line.filtered(lambda x: x.order_sequence==line.order_sequence and x.product_categ_id.id==line.product_categ_id.id )
+                line.update({'discount': line_summary.price_discount*100,
+                             'crm_price_unit': sum(lp.crm_price_subtotal for lp in line_product),})
+#                line_summary.update({'price_unit': sum(lp.crm_price_subtotal for lp in line_product),})
+                
 #                raise UserError(_('subtotal %s\n%s = %s')%(line,line.order_sequence,line.product_categ_id.name))
         else:
             line_section = self.order_line.filtered(lambda x: x.display_type=='line_section' and x.order_sequence==order_line.order_sequence)
@@ -312,6 +317,13 @@ class Lead(models.Model):
             for line in sol:
                 line.write({'order_sequence': order_sequence,})
                 self._calculate_subtotal(line)
+
+        new_subtotal = self.order_line.filtered(lambda x: x.display_type=='line_subtotal')
+        if new_subtotal:
+            for line in new_subtotal:
+                line_product = self.order_line.filtered(lambda x: x.order_sequence==line.order_sequence and x.product_categ_id.id==line.product_categ_id.id and x.product_id)
+                line_summary = self.summary_order_line.filtered(lambda x: x.order_sequence==line.order_sequence and x.product_categ_id.id==line.product_categ_id.id )
+                line_summary.update({'price_unit': sum(lp.crm_price_subtotal for lp in line_product),})
         return res
 
 class Lead(models.Model):
@@ -334,7 +346,7 @@ class Lead(models.Model):
         store=True, readonly=False,)
     price_unit = fields.Float(
         string="Unit Price",
-        compute='_compute_price_unit',
+#        compute='_compute_price_unit',
         digits='Product Price',
         store=True, readonly=False, required=True, precompute=True)
     discount = fields.Float(

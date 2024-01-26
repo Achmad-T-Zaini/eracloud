@@ -58,7 +58,7 @@ class SaleOrder(models.Model):
             for section in line_subtotal:
                 line_product = self.order_line.filtered(lambda x: x.order_sequence==section.order_sequence and x.product_id and x.order_type==section.order_type )
 #                raise UserError(_('line %s')%(line_product))
-                line_subtotal = sum(line.product_uom_qty*line.price_unit for line in line_product) or 0
+                line_subtotal = sum(line.product_uom_qty*line.crm_price_unit for line in line_product) or 0
                 if line_product and line_subtotal>0:
                     pto_update = self.lead_id.summary_order_line.filtered(lambda l: l.order_sequence ==section.order_sequence and l.order_type==section.order_type)
                     if pto_update:

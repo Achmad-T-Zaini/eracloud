@@ -226,8 +226,7 @@
                                     attrs="{'readonly': ['|',('qty_invoiced', '&gt;', 0),('display_type', '=', 'line_subtotal')]}"
                                 />
                                 <field
-                                    name="crm_price_unit" string='Price Unit' force_save="1"
-                                    attrs="{'readonly': ['|',('qty_invoiced', '&gt;', 0),('display_type', '=', 'line_subtotal')]}"
+                                    name="crm_price_unit" string='Price Unit' force_save="1" readonly="1"
                                 />
                                 <field
                                     name="tax_id"
