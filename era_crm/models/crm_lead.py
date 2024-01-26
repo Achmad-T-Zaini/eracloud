@@ -10,14 +10,14 @@ from odoo.osv import expression
 from odoo.tools import float_is_zero, float_compare, float_round
 from odoo.tools import get_timedelta
 
-class ResPartner(models.Model):
-    _inherit = "res.partner"
+#class ResPartner(models.Model):
+#    _inherit = "res.partner"
 
-    partner_initial = fields.Char(string='Initials', size=3)
-    _sql_constraints = [
-        (
-            'unique_partner_ny_initial', 'UNIQUE(partner_initial)', 'Only one Initial for Each Partner')
-    ]
+#    partner_initial = fields.Char(string='Initials', size=3)
+#    _sql_constraints = [
+#        (
+#            'unique_partner_ny_initial', 'UNIQUE(partner_initial)', 'Only one Initial for Each Partner')
+#    ]
 
 class CRMTeam(models.Model):
     _inherit = "crm.team"
