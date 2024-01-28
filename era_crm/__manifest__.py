@@ -5,6 +5,7 @@
     "category": "Sales",
     'license': 'AGPL-3',
     "version": "16.0.1",
+    "website": "https://github.com/Achmad-T-Zaini/eracloud",
     "depends": ["base", "sale", "crm", "sale_crm","sale_temporal", "sales_team",
                 "mrp_account","mrp","account", "product", 
                 ],
