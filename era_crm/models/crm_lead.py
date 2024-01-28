@@ -26,7 +26,10 @@ class CRMTeam(models.Model):
 
 
 class Lead(models.Model):
-    _inherit = "crm.lead"
+    _name = "crm.lead"
+    _inherit = ['crm.lead', 'tier.validation']
+    _state_from = ['draft']
+    _state_to = ['quotation']
 
     def _get_domain_team(self):
         domain = [('share', '=', False), ('company_ids', 'in', self.team_id.member_company_ids.ids,)]
@@ -77,12 +80,64 @@ class Lead(models.Model):
     duration = fields.Integer('Periode', default=12)
     term_condition = fields.Text(string='Term & Conditions',)
     order_template_id = fields.Many2one('mrp.bom', string='Order Template')
+
+    total_base = fields.Monetary(string="Total Amount",
+        compute='_compute_expected_revenue',
+        store=True, precompute=True)
+    total_disc = fields.Float(string="Total Disc (%)",
+        compute='_compute_expected_revenue',
+        store=True, precompute=True)
+    total_discount = fields.Monetary(string="Total Discount",
+        compute='_compute_expected_revenue',
+        store=True, precompute=True)
+    total_tax = fields.Monetary(string="Total Tax",
+        compute='_compute_expected_revenue',
+        store=True, precompute=True)
 #    order_template_id = fields.Many2one('crm.template', string='Order Template', domain="[('type','=','product')]")
-#    dynamic_approval_state = fields.Selection(string="Approval Mode", selection=[
-#        ('approve', 'Approve'),
-#        ('resubmit', 'Resubmit'),
-#        ('reject', 'Reject')], default='approve')
+
+    state = fields.Selection(
+        selection=[
+            ('draft', "Opportunity"),
+            ('quotation', "Quotation"),
+        ],
+        string="Status",
+        readonly=True, copy=False, index=True,
+        tracking=3,
+        default='draft')
     
+    review_status = fields.Selection(
+        selection=[("pending", "Pending"),
+                   ("rejected", "Rejected"),
+                   ("approved", "Approved")], default="pending", compute="compute_review_status")
+    approver = fields.Char(string='Approver', compute="compute_review_status")
+    revision_bool = fields.Boolean(string="Revision Bool", compute="compute_revision_button")
+    
+    @api.depends('review_ids')
+    def compute_review_status(self):
+        for rec in self:
+            rec.approver = False
+            if rec.review_ids:
+                if rec.validated:
+                    rec.review_status = "approved"
+                elif rec.rejected:
+                    rec.review_status = "rejected"
+                else:
+                    rec.review_status = "pending"
+                approver = rec.review_ids.filtered(lambda l: l.status == 'pending')
+                rec.approver = approver[0].name if approver else False
+            else:
+                rec.review_status = "pending"
+
+    @api.depends('review_status', 'review_ids')
+    def compute_revision_button(self):
+        for rec in self:
+            if rec.review_status == 'pending':
+                rec.revision_bool = True
+            elif rec.state == 'pending' and rec.review_ids.filtered(lambda r: r.status == 'rejected'):
+                rec.revision_bool = True
+            else:
+                rec.revision_bool = False
+
     @api.onchange('order_id')
     def _onchange_order_id(self):
         if not self.order_id:
@@ -99,9 +154,12 @@ class Lead(models.Model):
             domain['domain']['user_id']= [('share', '=', False), ('company_ids', 'in', self.team_id.member_company_ids.ids,),('id', 'in', users.ids)]
         return domain      
 
-    def action_approve(self):
-        raise UserError(_('action_approve'))
+    def action_print_quotation(self):
+        self.order_id.quotation_rev+=1
+        return self.env.ref('era_crm.action_crm_quotation').report_action(self)
 
+    def action_email_quotation(self):
+        raise UserError(_('email quotation'))
 
     @api.onchange('order_id', 'order_id.order_line', 'order_id.order_line.product_id','order_id.order_line.product_uom_qty','order_id.order_line.price_unit','order_id.order_line.discount',
             'order_line','order_line.product_uom_qty','order_line.price_unit','order_line.discount','order_line.product_id','expected_revenue', 'order_id.amount_total',
@@ -304,14 +362,24 @@ class Lead(models.Model):
             self.order_line = order_line
             self.summary_order_line = summary_order_line
             self.order_template_id = False
+            self._calculate_subtotal()
 
+       
     @api.depends('order_id', 'order_id.amount_total', 'currency_id','order_line', 'order_line.price_unit', 'order_line.discount', 'order_line.product_uom_qty')
     def _compute_expected_revenue(self):
         for order in self:
             order._calculate_subtotal()
+            total_base = total_disc = total_discount = total_tax = 0
+            total_base = sum(line.crm_price_unit * line.product_uom_qty for line in order.order_line.filtered(lambda l: not l.display_type))
+            total_discount = sum(line.crm_price_subtotal for line in order.order_line.filtered(lambda l: l.display_type=='line_subtotal'))
+            if total_base>0:
+                total_disc = (total_base-total_discount)/total_base * 100
             expected_revenue = 0
             expected_revenue = sum(line.crm_price_subtotal for line in order.order_line.filtered(lambda l: l.display_type=='line_subtotal'))
-            order.update({'expected_revenue': expected_revenue,})
+            order.update({'expected_revenue': expected_revenue,
+                          'total_base': total_base,
+                          'total_disc': total_disc,
+                          'total_discount': total_base-total_discount,})
 #            order.order_id.update({'amount_total': expected_revenue,})
 
 
@@ -385,12 +453,16 @@ class Lead(models.Model):
         new_subtotal = self.order_line.filtered(lambda x: x.display_type=='line_subtotal')
         if new_subtotal:
             for line in new_subtotal:
+                summ_vals = {}
                 if line.product_uom_qty==0:
                     line.product_uom_qty = 1
+                    summ_vals = {'product_uom_qty': 1,}
 #                raise UserError(_('vals %s\n%s = %s')%(vals,line.name,line.product_uom_qty))
                 line_product = self.order_line.filtered(lambda x: x.order_sequence==line.order_sequence and x.product_categ_id.id==line.product_categ_id.id and x.product_id)
                 line_summary = self.summary_order_line.filtered(lambda x: x.order_sequence==line.order_sequence and x.product_categ_id.id==line.product_categ_id.id )
-                line_summary.update({'price_unit': sum(lp.crm_price_subtotal for lp in line_product),})
+                if summ_vals:
+                    summ_vals.update({'price_unit': sum(lp.crm_price_subtotal for lp in line_product),})
+                line_summary.update(summ_vals)
         return res
 
 class Lead(models.Model):

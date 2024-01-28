@@ -59,7 +59,7 @@
                         <td class="text-center" style="width: 30%; padding: 5px 5px 5px 5px;"><span t-esc="doc.lead_id.contact_name"/></td>
                     </t>
                     <td class="text-center" style="padding: 5px 5px 5px 5px;">Quotation No </td>
-                    <td class="text-center"  style="padding: 5px 5px 5px 5px;" colspan="2"><span t-field="doc.quotation_no"/></td>
+                    <td class="text-center"  style="padding: 5px 5px 5px 5px;" colspan="2"><span t-esc="doc.quotation_no + ' Rev. ' + str(doc.quotation_rev).zfill(3)"/></td>
                 </tr>
                 <tr>
                     <td class="text-center" style="width: 20%;padding: 5px 5px 5px 5px;">Company Name</td>

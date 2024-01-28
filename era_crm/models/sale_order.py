@@ -11,7 +11,7 @@ class SaleOrder(models.Model):
     manufacture_id = fields.Many2one('mrp.production', string='Manufacture Order', readonly=True)
     lead_id = fields.Many2one('crm.lead', string='CRM Lead', readonly=True)
     quotation_no = fields.Char(string='Quotation', store=True, readonly=True)
-    quotation_rev = fields.Integer(string='Rev.', store=True, readonly=True, default=1)
+    quotation_rev = fields.Integer(string='Rev.', store=True, readonly=True, default=0)
 
     @api.model_create_multi
     def create(self, vals_list):

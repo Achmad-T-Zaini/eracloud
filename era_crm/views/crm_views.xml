@@ -51,34 +51,99 @@
         <field name="arch" type="xml">
             
             <button name="%(crm.crm_lead_lost_action)d" position="replace">
-                <button string="New Quotation" name="action_sale_quotations_new" type="object" class="oe_highlight" data-hotkey="q" title="Create new quotation" attrs="{'invisible': ['|','|',('order_id', '!=', False), ('type', '=', 'lead'), '&amp;', ('probability', '=', 0), ('active', '=', False)]}"/>
+                <button string="New Quotation" name="action_sale_quotations_new" type="object" class="oe_highlight" title="Create new quotation" attrs="{'invisible': ['|','|',('order_id', '!=', False), ('type', '=', 'lead'), '&amp;', ('probability', '=', 0), ('active', '=', False)]}"/>
+                <button string="Print Quotation" name="action_print_quotation" type="object" class="oe_highlight"  title="Print Quotation" attrs="{'invisible': ['|',('need_validation', '!=', False),('validated', '!=', True)]}"/>
+                <button string="Email Quotation" name="action_email_quotation" type="object" class="oe_highlight"  title="Email Quotation" attrs="{'invisible': ['|',('need_validation', '!=', False),('validated', '!=', True)]}"/>
                 <button name="%(crm.crm_lead_lost_action)d" string="Lost" data-hotkey="l" title="Mark as lost"
                     type="action" context="{'default_lead_id': active_id}" attrs="{'invisible': ['|', ('type', '=', 'lead'), '&amp;',('active', '=', False),('probability', '&lt;', 100)]}"/>
-<!--
-                <button name="action_create_order" string="Create Order" type="object" data-hotkey="c"
-                    attrs="{'invisible': ['|',('sale_order_count','>=',1),('is_won', '!=', True)]}"/>
--->
+
+            <button name="request_validation" string="Request Validation" 
+                attrs="{'invisible': ['|',('need_validation', '!=', True),('rejected','=',True)]}" type="object"/>
+            <button name="restart_validation" string="Restart Validation" 
+                attrs="{'invisible': [('review_ids', '=', [])]}" type="object"/>
+
             </button>
+
+        <header position="after">
+          <field name="need_validation" invisible="1"/>
+          <field name="validated" invisible="1"/>
+          <field name="rejected" invisible="1"/>
+          <div class="alert alert-warning" role="alert" attrs="{'invisible': ['|', '|', 
+                     ('validated', '=', True),
+                     ('rejected', '=', True), ('review_ids', '=', [])]}" style="margin-bottom:0px;">
+            <p>
+              <i class="fa fa-info-circle"/>
+This Opportunity needs 
+              <field name="approver" readonly="1"/> 
+              <field name="can_review" invisible="1"/>
+              <button name="validate_tier" string="Validate" 
+attrs="{'invisible': [('can_review', '=', False)]}" type="object" 
+class="oe_inline oe_button btn-success" icon="fa-thumbs-up"/>
+              <button name="reject_tier" string="Reject" 
+attrs="{'invisible': [('can_review', '=', False)]}" type="object" 
+class="btn-icon btn-danger" icon="fa-thumbs-down"/>
+            </p>
+          </div>
+          <div class="alert alert-success" role="alert" 
+attrs="{'invisible': ['|', ('validated', '!=', True), 
+('review_ids', '=', [])]}" style="margin-bottom:0px;">
+            <p>
+              <i class="fa fa-thumbs-up"/>
+ This Opportunity has been <b>Validated</b>!
+            </p>
+          </div>
+          <div class="alert alert-danger" role="alert" attrs="{'invisible': ['|', 
+('rejected', '!=', True), ('review_ids', '=', [])]}" 
+style="margin-bottom:0px;">
+            <p>
+              <i class="fa fa-thumbs-down"/>
+ This Opportunity has been <b>rejected</b>.
+            </p>
+          </div>
+        </header>
+
+        <xpath expr="//form/div[hasclass('oe_chatter')]" position="before">
+        <field
+            name="review_ids"
+            widget="tier_validation"
+            attrs="{'invisible':[('review_ids', '=', [])]}"
+            style="width:100%%; margin-top: 10px;"
+        >
+        <tree>
+            <field name="id" />
+            <field name="name" />
+            <field name="sequence" />
+            <field name="requested_by" />
+            <field name="status" />
+            <field name="todo_by" />
+            <field name="done_by" />
+            <field name="reviewed_date" />
+            <field name="reviewed_formated_date" />
+            <field name="comment" />
+        </tree>
+            </field>
+        </xpath>
 
             <xpath expr="//group[@name='lead_info']" position="inside">
                 <field name="create_uid" string="Sales Lead by" widget="many2one_avatar_user" readonly="1" force_save="1" attrs="{ 'invisible': [('type','!=', 'lead')]}"/>
             </xpath>
 
             <xpath expr="//group[@name='Misc']/field[@name='team_id']" position="after">
+                    <field name="review_status" invisible="1" />
                 <field name="create_uid" string="Sales Lead by" widget="many2one_avatar_user" readonly="1" force_save="1" />
             </xpath>
 
             <field name="company_id" position="after">
                 <field name="fiscal_position_id" invisible="1"/>
-<!--
-                <field name="dynamic_approval_state" invisible="1"/>
--->
+                <field name="state" invisible="1"/>
+                <field name="revision_bool" invisible="1"/>
+                <field name="review_status" invisible="1"/>
                 <field name="is_won" invisible="1"/>
                 <field name="order_id" invisible="1"/>
                 <field name="currency_id" invisible="1"/>
             </field>
             <xpath expr="//form/sheet/group" position="after">
-                <group string="Subscriptions" attrs="{ 'readonly': [('sale_order_count','>=',1)]}">
+                <group string="Subscriptions" attrs="{ 'readonly': [('is_won','=',True)]}">
                     <group >
                         <label name="recurrence_label" for="recurrence_id"/>
                         <div class="o_row" name="recurrence_block" attrs="{ 'readonly': [('sale_order_count','>=',1)]}">
@@ -100,7 +165,7 @@
                 </group>
             </xpath>
             <page name="internal_notes" position="before">
-                <page string="Order Lines" name="order_lines" attrs="{ 'invisible': [('order_id','=',False)]}">
+                <page string="Order Lines" name="order_lines" attrs="{ 'readonly': [('is_won','=',True)], 'invisible': [('order_id','=',False)]}">
                     <group>
                         <label for="order_template_id" string='Order Template' />
                         <div>
@@ -291,7 +356,7 @@
                         </group>
 -->
                 </page>
-                <page string="Order Summary" name="summary_order_lines" attrs="{ 'invisible': [('order_id','=',False)]}">
+                <page string="Order Summary" name="summary_order_lines" attrs="{ 'readonly': [('is_won','=',True)],'invisible': [('order_id','=',False)]}">
                     <field name="summary_order_line" mode="tree" >
                         <tree string="Summary Order" create='false' delete='false' editable="bottom" >
                             <field name="name" readonly="1" force_save="1"/>
@@ -305,6 +370,12 @@
                             <field name="price_total" widget="monetary" readonly="1" force_save="1"/>
                         </tree>
                     </field>
+                    <group class="oe_subtotal_footer oe_right" colspan="2" name="crm_quotation_total">
+                        <field name="total_base" widget='monetary' readonly="1"/>
+                        <field name="total_disc" readonly="1"/>
+                        <field name="total_discount" widget='monetary' readonly="1"/>
+                        <field name="expected_revenue" widget='monetary' readonly="1"/>
+                    </group>
                 </page>
                 <page string="Term and Conditions" name="term_conditions" attrs="{ 'invisible': [('order_id','=',False)], 'readonly': [('is_won','=',True)]}">
                             <group colspan="4">
