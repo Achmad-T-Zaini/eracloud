@@ -26,8 +26,8 @@ class CRMTeam(models.Model):
 
 
 class Lead(models.Model):
-    _inherit = "crm.lead"
-#    _inherit = ['crm.lead', 'tier.validation']
+    _name = "crm.lead"
+    _inherit = ['crm.lead', 'tier.validation']
     _state_from = ['draft']
     _state_to = ['quotation']
 
