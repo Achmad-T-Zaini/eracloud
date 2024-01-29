@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data>
+        <menuitem id="era_presale_root_menu" web_icon="era_presale,static/src/img/icon.png" 
+                name="Presale" groups="era_presale.group_presale_user" sequence="40"/>
+    </data>
+</odoo>

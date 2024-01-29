@@ -1,0 +1,5 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_era_presale,access_era_presale,model_era_presale,era_presale.group_presale_user,1,1,1,0
+access_era_presale_admin,access_era_presale_admin,model_era_presale,era_presale.group_presale_admin,1,1,1,1
+access_era_presale_bom_line,access_era_presale_bom_line,model_era_presale_bom_line,era_presale.group_presale_user,1,1,1,0
+access_era_presale_bom_line_admin,access_era_presale_bom_line_admin,model_era_presale_bom_line,era_presale.group_presale_admin,1,1,1,1

@@ -59,7 +59,7 @@
                         <td class="text-center" style="width: 30%; padding: 5px 5px 5px 5px;"><span t-esc="doc.lead_id.contact_name"/></td>
                     </t>
                     <td class="text-center" style="padding: 5px 5px 5px 5px;">Quotation No </td>
-                    <td class="text-center"  style="padding: 5px 5px 5px 5px;" colspan="2"><span t-esc="doc.quotation_no + ' Rev. ' + str(doc.quotation_rev).zfill(3)"/></td>
+                    <td class="text-center"  style="padding: 5px 5px 5px 5px;" colspan="3"><span t-esc="doc.quotation_no + ' Rev. ' + str(doc.quotation_rev).zfill(3)"/></td>
                 </tr>
                 <tr>
                     <td class="text-center" style="width: 20%;padding: 5px 5px 5px 5px;">Company Name</td>
@@ -69,11 +69,11 @@
                         </t>
                     </td>
                     <td class="text-center" style="padding: 5px 5px 5px 5px;">Date </td>
-                    <td class="text-center" style="padding: 5px 5px 5px 5px;" colspan="2"><span t-esc="doc.date_order.strftime('%d %B %Y')"/></td>
+                    <td class="text-center" style="padding: 5px 5px 5px 5px;" colspan="3"><span t-esc="doc.date_order.strftime('%d %B %Y')"/></td>
                 </tr>
                 <tr/>
                 <tr style="border:1px solid;">
-                    <td class="text-start" colspan="5" style="border:1px solid;padding: 5px 5px 5px 5px;">
+                    <td class="text-start" colspan="6" style="border:1px solid;padding: 5px 5px 5px 5px;">
                         <br/>
 First of all, we would like to thank your interest and the opportunity for us to submit our quote. Based on our previous discussion, we would like to offer you our product as follows:
                         <br/>
@@ -83,7 +83,7 @@ First of all, we would like to thank your interest and the opportunity for us to
                 <thead style="display: table-row-group">
                     <tr>
                         <th name="th_description" class="text-start" colspan="2" style="background-color:lightblue;padding: 5px 5px 5px 5px;" >Product Name</th>
-                        <th name="th_cost_description" class="text-start" colspan="3" style="background-color:lightblue; padding: 5px 5px 5px 5px;">Cost Description</th>
+                        <th name="th_cost_description" class="text-start" colspan="4" style="background-color:lightblue; padding: 5px 5px 5px 5px;">Cost Description</th>
                     </tr>
                 </thead>
                 <tbody class="sale_tbody">
@@ -100,11 +100,14 @@ First of all, we would like to thank your interest and the opportunity for us to
                                 <td name="td_section_line" colspan="2" style="border:1px solid;text-align: center;padding: 5px 5px 5px 5px;background-color:lightblue;">
                                     <span t-field="line.name"/>
                                 </td>
-                                <td name="td_quantity" style="width: 12.5%;border:1px solid;text-align: center;padding: 5px 5px 5px 5px;background-color:lightblue;">
+                                <td name="td_quantity" style="width: 10%;border:1px solid;text-align: center;padding: 5px 5px 5px 5px;background-color:lightblue;">
                                     Quantity
                                 </td>
-                                <td name="td_priceunit" style="width: 17.5%;border:1px solid;text-align: center;padding: 5px 5px 5px 5px;background-color:lightblue;">
+                                <td name="td_priceunit" style="width: 15%;border:1px solid;text-align: center;padding: 5px 5px 5px 5px;background-color:lightblue;">
                                     Price Unit
+                                </td>
+                                <td name="td_quantity" style="width: 5%;border:1px solid;text-align: center;padding: 5px 5px 5px 5px;background-color:lightblue;">
+                                    Discount
                                 </td>
                                 <td name="td_subtotal" style="width: 20%;border:1px solid;text-align: center;padding: 5px 5px 5px 5px;background-color:lightblue;">
                                     Subtotal
@@ -119,11 +122,14 @@ First of all, we would like to thank your interest and the opportunity for us to
                                 <td name="td_name" colspan="2" style="border:1px solid; padding: 5px 5px 5px 5px;text-align: right;background-color:lightcyan;">
                                     <span t-field="line.name"/>
                                 </td>
-                                <td name="td_quantity" style="text-align: center;width: 12.5%;border:1px solid;padding: 5px 5px 5px 5px;background-color:lightcyan;">
+                                <td name="td_quantity" style="text-align: center;width: 10%;border:1px solid;padding: 5px 5px 5px 5px;background-color:lightcyan;">
                                     <span t-esc="line.product_uom_qty"/>
                                 </td>
-                                <td name="td_priceunit" style="width: 17.5%;border:1px solid;padding: 5px 5px 5px 5px;background-color:lightcyan;text-align: right;">
+                                <td name="td_priceunit" style="width: 15%;border:1px solid;padding: 5px 5px 5px 5px;background-color:lightcyan;text-align: right;">
                                     <span t-esc="line.currency_id.symbol + '{:{fill}{align}20,.2f}'.format(line.crm_price_unit,fill=' ',align='>')"/>
+                                </td>
+                                <td name="td_discount" style="width: 5%;border:1px solid;padding: 5px 5px 5px 5px;background-color:lightcyan;text-align: right;">
+                                    <span t-esc="'{:{fill}{align}20,.2f}'.format(line.discount,fill=' ',align='>')"/>
                                 </td>
                                 <td name="td_subtotal" style="width: 20%;border:1px solid;padding: 5px 5px 5px 5px;background-color:lightcyan;text-align: right;">
                                     <span t-esc="line.currency_id.symbol + '{:{fill}{align}20,.2f}'.format(line.crm_price_subtotal,fill=' ',align='>').rjust(20)"/>
@@ -133,11 +139,14 @@ First of all, we would like to thank your interest and the opportunity for us to
                                 <td name="td_name" colspan="2" style="border:1px solid; padding: 5px 5px 5px 5px;">
                                     <span t-field="line.name"/>
                                 </td>
-                                <td name="td_quantity" style="width: 12.5%;border:1px solid;padding: 5px 5px 5px 5px;text-align: center;">
+                                <td name="td_quantity" style="width: 10%;border:1px solid;padding: 5px 5px 5px 5px;text-align: center;">
                                     <span t-esc="str(line.product_uom_qty) + ' ' + line.product_uom.name"/>
                                 </td>
-                                <td name="td_priceunit" style="width: 17.5%;border:1px solid;padding: 5px 5px 5px 5px;text-align: right;">
+                                <td name="td_priceunit" style="width: 15%;border:1px solid;padding: 5px 5px 5px 5px;text-align: right;">
                                     <span t-esc="line.currency_id.symbol + '{:{fill}{align}20,.2f}'.format(line.crm_price_unit,fill=' ',align='>')"/>
+                                </td>
+                                <td name="td_discount" style="width: 5%;border:1px solid;padding: 5px 5px 5px 5px;text-align: right;">
+                                    <span t-esc="'{:{fill}{align}20,.2f}'.format(line.discount,fill=' ',align='>')"/>
                                 </td>
                                 <td t-if="not line.is_downpayment" name="td_subtotal" class="text-end o_price_total" style="width: 20%;border:1px solid;padding: 5px 5px 5px 5px;text-align: right;">
                                     <span t-esc="line.currency_id.symbol + '{:{fill}{align}20,.2f}'.format(line.crm_price_subtotal,fill=' ',align='>')"/>
@@ -163,7 +172,7 @@ First of all, we would like to thank your interest and the opportunity for us to
                     <t t-if="summary_subtotal">
                         <t t-foreach="summary_subtotal" t-as="summ">
                             <tr>
-                                <td colspan="4" style="width: 20%;border:1px solid;padding: 5px 5px 5px 5px;text-align: right;">
+                                <td colspan="5" style="width: 20%;border:1px solid;padding: 5px 5px 5px 5px;text-align: right;">
                                     <span t-esc="summ['name']"/>
                                 </td>
                                 <td style="width: 20%;border:1px solid;padding: 5px 5px 5px 5px;text-align: right;">

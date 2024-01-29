@@ -95,6 +95,7 @@ class Lead(models.Model):
         store=True, precompute=True)
 #    order_template_id = fields.Many2one('crm.template', string='Order Template', domain="[('type','=','product')]")
 
+    ###### untuk kebutuhan APPROVAL
     state = fields.Selection(
         selection=[
             ('draft', "Opportunity"),
@@ -112,6 +113,9 @@ class Lead(models.Model):
     approver = fields.Char(string='Approver', compute="compute_review_status")
     revision_bool = fields.Boolean(string="Revision Bool", compute="compute_revision_button")
     
+    ##### PRESALE
+    presale_id = fields.Many2one('era.presale', string="Presale")
+
     @api.depends('review_ids')
     def compute_review_status(self):
         for rec in self:
@@ -292,6 +296,7 @@ class Lead(models.Model):
         sum_total = self.summary_order_line.sorted(key=lambda mv: (mv.recurrence_id, mv.product_categ_id,))
         if sum_total:
             total = 0.0
+            discount = total_disc = 0.0
             recurrence_id = categ = False
             for line in self.summary_order_line:
                 if not recurrence_id:
@@ -300,21 +305,30 @@ class Lead(models.Model):
                     categ = line.product_categ_id
 
                 if recurrence_id and (recurrence_id.id!=line.recurrence_id.id or categ.id!=line.product_categ_id.id):
+                    if discount>0 and total>0:
+                        total_disc = discount/total
                     data.append({'name': 'Total ' + recurrence_id.name + ' ' + categ.name,
+                                 'discount': total_disc,
                                  'total': total,})
                     recurrence_id = line.recurrence_id
                     categ = line.product_categ_id
                     total = line.price_total
+                    discount = line.price_discount * line.product_uom_qty * line.price_unit
                 else:
                     total += line.price_total
+                    discount = line.price_discount * line.product_uom_qty * line.price_unit
 
+            if discount>0 and total>0:
+                total_disc = discount/total
             if not recurrence_id:
                 data.append({'name': 'Total One Time Charge' + ' ' + categ.name,
+                             'discount': total_disc,
                              'total': total,})
             else:
                 data.append({'name': 'Total ' + recurrence_id.name + ' ' + categ.name,
+                             'discount': total_disc,
                              'total': total,})
-    #        raise UserError(_('data %s')%(data))
+#            raise UserError(_('data %s')%(data))
         return data
     
     def action_get_template(self):
@@ -462,6 +476,8 @@ class Lead(models.Model):
                 line_summary = self.summary_order_line.filtered(lambda x: x.order_sequence==line.order_sequence and x.product_categ_id.id==line.product_categ_id.id )
                 if summ_vals:
                     summ_vals.update({'price_unit': sum(lp.crm_price_subtotal for lp in line_product),})
+                else:
+                    summ_vals = {'price_unit': sum(lp.crm_price_subtotal for lp in line_product),}
                 line_summary.update(summ_vals)
         return res
 

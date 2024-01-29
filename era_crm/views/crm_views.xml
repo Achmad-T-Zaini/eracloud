@@ -39,6 +39,8 @@
 
                 <button name="action_sale_quotations_new" position="replace">
                 </button>
+                <button name="action_view_sale_quotation" position="replace">
+                </button>
 
             </field>
         </record>
@@ -143,7 +145,7 @@ style="margin-bottom:0px;">
                 <field name="currency_id" invisible="1"/>
             </field>
             <xpath expr="//form/sheet/group" position="after">
-                <group string="Subscriptions" attrs="{ 'readonly': [('is_won','=',True)]}">
+                <group string="Requirements" attrs="{ 'readonly': [('is_won','=',True)]}">
                     <group >
                         <label name="recurrence_label" for="recurrence_id"/>
                         <div class="o_row" name="recurrence_block" attrs="{ 'readonly': [('sale_order_count','>=',1)]}">
@@ -383,11 +385,28 @@ style="margin-bottom:0px;">
                             </group>
                 </page>
                 <page string="Pre-Sales / Operations" name="pre_sales" attrs="{ 'invisible': [('order_id','=',False)], 'readonly': [('is_won','=',True)]}">
-                    <group string="Pre-Sales">
-                        <span> Request Trial / POC  to Pre-Sales Team </span>
-                    </group>
-                    <group string="Operations">
-                        <span> Request Implementation to Operations Team </span>
+                    <group>
+                        <group string="Pre-Sales">
+                            <span> Request Trial / POC  to Pre-Sales Team </span>
+                            <field name="presale_id">
+                                <form>
+                                    <group>
+                                        <group>
+                                            <field name="presale_type" required="1"/>
+                                            <label for="date_from" string="Start From"/>
+                                            <div>
+                                                <field name="date_from" class="oe_inline"  required="1"/> until <field name="date_to" class="oe_inline" required="1"/>
+                                            </div>
+                                            <field name="product_id"  required="1"/>
+                                            <field name="company_id" invisible="1"/>
+                                        </group>
+                                    </group>
+                                </form>
+                            </field>
+                        </group>
+                        <group string="Operations">
+                            <span> Request Implementation to Operations Team </span>
+                        </group>
                     </group>
                 </page>
             </page>
