@@ -46,7 +46,7 @@ class Lead(models.Model):
         result = super(Lead, self).fields_view_get(view_id=view_id, view_type=view_type, toolbar=toolbar, submenu=submenu)
 
         doc = etree.XML(result['arch']) #Get the view architecture of record
-        raise UserError(_(self.env.context))
+#        raise UserError(_(self.env.context))
         for node in doc.xpath("//field"): #Get all the fields navigating through xpath
             modifiers = json.loads(node.get("modifiers")) #Get all the existing modifiers of each field
             domain = [('is_won','=',True)]
@@ -199,9 +199,9 @@ class Lead(models.Model):
     @api.onchange('stage_id')
     def _onchange_stage_id_era(self):
         if self.stage_id.is_won:
-            if self.need_validation or self.review_status!='approved':
+            if self.need_validation and self.review_status!='approved':
                 raise UserError(_('This Opportunity need Validation'))
-            elif self.review_status=='approved':
+            elif not self.need_validation or self.review_status=='approved':
                 self.is_won = True
 #                raise UserError(_('Approved and create SO'))
         elif self.is_won:

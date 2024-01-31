@@ -20,6 +20,9 @@ class SaleOrder(models.Model):
                 self = self.with_company(vals['company_id'])
             era_code = 'SG'
             if vals.get('lead_id',False):
+                seq_date = fields.Datetime.context_timestamp(
+                    self, fields.Datetime.to_datetime(vals['date_order'])
+                ) if 'date_order' in vals else None
                 lead_id = self.env['crm.lead'].browse(vals['lead_id'])
                 era_code = lead_id.team_id.team_initial + '-' + lead_id.user_id.partner_id.partner_initial
                 vals['quotation_no']= self.env['ir.sequence'].next_by_code_era(
