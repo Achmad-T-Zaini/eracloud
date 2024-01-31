@@ -3,6 +3,15 @@
 from odoo import fields, models, _
 from odoo.exceptions import UserError
 
+class ResConfigSettings(models.TransientModel):
+	_inherit = 'res.config.settings'
+
+	monthly_subscription = fields.Many2one('product.product', 
+		string='Monthly Subscription', domain= lambda self: [("recurring_invoice", "=", True)],
+		config_parameter='sales.monthly_subscription')
+	yearly_subscription = fields.Many2one('product.product', 
+		string='Yearly Subscription', domain= lambda self: [("recurring_invoice", "=", True)],
+		config_parameter='sales.yearly_subscription')
 
 class ProductCategory(models.Model):
     _inherit = 'product.category'

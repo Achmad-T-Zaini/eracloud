@@ -8,27 +8,29 @@ from odoo.tools import float_is_zero, float_compare, float_round
 class SaleOrder(models.Model):
     _inherit = 'sale.order'
 
-    manufacture_id = fields.Many2one('mrp.production', string='Manufacture Order', readonly=True)
     lead_id = fields.Many2one('crm.lead', string='CRM Lead', readonly=True)
     quotation_no = fields.Char(string='Quotation', store=True, readonly=True)
     quotation_rev = fields.Integer(string='Rev.', store=True, readonly=True, default=0)
+    mrp_order_line = fields.One2many('sale.order.line','mrp_order_id',string='MRP Order Line', domain="[('manufacture_id','!='.False)]")
 
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
             if 'company_id' in vals:
                 self = self.with_company(vals['company_id'])
-            if vals.get('name', _("New")) == _("New"):
+            era_code = 'SG'
+            if vals.get('lead_id',False):
+                lead_id = self.env['crm.lead'].browse(vals['lead_id'])
+                era_code = lead_id.team_id.team_initial + '-' + lead_id.user_id.partner_id.partner_initial
+                vals['quotation_no']= self.env['ir.sequence'].next_by_code_era(
+                                'quotation.sequence', era_code,sequence_date=seq_date) or _("New")
+                vals['name'] = vals['quotation_no']
+            elif vals.get('name', _("New")) == _("New"):
                 seq_date = fields.Datetime.context_timestamp(
                     self, fields.Datetime.to_datetime(vals['date_order'])
                 ) if 'date_order' in vals else None
-                vals['name'] = "New CRM"
-                era_code = 'SG'
-                if vals.get('lead_id',False):
-                    lead_id = self.env['crm.lead'].browse(vals['lead_id'])
-                    era_code = lead_id.team_id.team_initial + '-' + lead_id.user_id.partner_id.partner_initial
-                vals['quotation_no']= self.env['ir.sequence'].next_by_code_era(
-                    'quotation.sequence', era_code,sequence_date=seq_date) or _("New")
+                vals['name'] = self.env['ir.sequence'].next_by_code(
+                    'sale.order', sequence_date=seq_date) or _("New")
         return super().create(vals_list)
 
 
@@ -36,11 +38,12 @@ class SaleOrder(models.Model):
         res = super().action_confirm()
         mto = self.order_line.filtered(lambda l: l.product_id.bom_count>0)
         if mto:
-            manufacture_order = self.env['mrp.production'].create({
+            for line in mto:
+                manufacture_order = self.env['mrp.production'].create({
                             'product_id': mto[0].product_id.id,
                         })
-            manufacture_order.action_confirm()
-            self.update({ 'manufacture_id': manufacture_order.id})
+                manufacture_order.action_confirm()
+                line.write({ 'manufacture_id': manufacture_order.id, 'mrp_order_id': line.order_id.id,})
 
         return res
 
@@ -51,12 +54,12 @@ class SaleOrder(models.Model):
         if self.lead_id:
             line_section = self.order_line.filtered(lambda x: x.display_type=='line_section')
             line_subtotal = self.order_line.filtered(lambda x: x.display_type=='line_subtotal')
-            if line_section:
-                to_remove = self.lead_id.summary_order_line.filtered(lambda l: l.order_sequence not in [line_section.order_sequence])
-                if to_remove:
-                    self.lead_id.summary_order_line = [(3,to_remove.id)]
-                    to_remove = self.order_line.filtered(lambda l: l.order_sequence not in [line_section.order_sequence])
-                    self.order_line = [(3,tr.id) for tr in to_remove]
+#            if line_section:
+#                to_remove = self.lead_id.summary_order_line.filtered(lambda l: l.order_sequence not in [line_section.order_sequence])
+#                if to_remove:
+#                    self.lead_id.summary_order_line = [(3,to_remove.id)]
+#                    to_remove = self.order_line.filtered(lambda l: l.order_sequence not in [line_section.order_sequence])
+#                    self.order_line = [(3,tr.id) for tr in to_remove]
 #                raise UserError(_('section %s\n%s')%(line_section,to_remove))
 
             for section in line_subtotal:
@@ -119,6 +122,16 @@ class SaleOrderLine(models.Model):
         store=True, precompute=True)
     product_categ_id = fields.Many2one('product.category',string='Product Category', required=True, store=True)
 
+    mrp_order_id = fields.Many2one('sale.order', string='MRP Order', readonly=True)
+    manufacture_id = fields.Many2one('mrp.production', string='Manufacture Order', readonly=True)
+    manufacture_state = fields.Selection([
+        ('draft', 'Draft'),
+        ('confirmed', 'Confirmed'),
+        ('progress', 'In Progress'),
+        ('to_close', 'To Close'),
+        ('done', 'Done'),
+        ('cancel', 'Cancelled')], string='State',
+        related='manufacture_id.state', copy=False, index=True, readonly=True,)
 
     @api.onchange('display_type','product_id')
     def _onchange_display_type_era(self):
@@ -228,8 +241,36 @@ class SaleOrderLine(models.Model):
             vals.update({'order_type': product_id.detailed_type,})
         if vals.get('display_type',False) and vals['display_type']=='line_subtotal':
             vals.update({'product_uom_qty': 1,})
-#        raise UserError(_('vals %s \n %s')%(vals,product_id.detailed_type))
             
         return res
     
-    
+    @api.depends('product_id', 'order_id.recurrence_id')
+    def _compute_pricing(self):
+        # search pricing_ids for each variant in self
+        available_pricing_ids = self.env['product.pricing'].search([
+            ('product_template_id', 'in', self.product_id.product_tmpl_id.ids),
+            ('recurrence_id', 'in', self.order_id.recurrence_id.ids),
+            '|',
+            ('product_template_id', 'in', self.product_id.product_tmpl_id.ids),
+            ('recurrence_id', 'in', self.recurrence_id.ids),
+            '|',
+            ('product_variant_ids', 'in', self.product_id.ids),
+            ('product_variant_ids', '=', False),
+            '|',
+            ('pricelist_id', 'in', self.order_id.pricelist_id.ids),
+            ('pricelist_id', '=', False)
+        ])
+        for line in self:
+            if not line.product_id.recurring_invoice:
+                line.pricing_id = False
+                continue
+            line.pricing_id = available_pricing_ids.filtered(
+                lambda pricing:
+                    line.product_id.product_tmpl_id == pricing.product_template_id and (
+                        line.product_id in pricing.product_variant_ids or not pricing.product_variant_ids
+                    ) and (line.order_id.pricelist_id == pricing.pricelist_id or not pricing.pricelist_id)
+            )[:1]
+
+            if not line.pricing_id:
+                line.pricing_id = self.env['product.pricing'].search([('recurrence_id','=',self.recurrence_id.id),('product_template_id','=',self.product_id.product_tmpl_id.id)], limit=1).id
+

@@ -22,4 +22,33 @@
         </field>
     </record>
 
+    <record id="res_config_settings_era_crm_view_form" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.era_crm</field>
+        <field name="model">res.config.settings</field>
+        <field name="priority" eval="100"/>
+        <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@id='order_warnings']" position="after">
+                        <div class="col-12 col-lg-6 o_setting_box" id="monthly_subscription_product_options">
+                            <div class="o_setting_right_pane">
+                                <label for="monthly_subscription" string="Monthly Subscription Product" class="col-lg-4 o_light_label"/>
+	                            <div class="text-muted">
+	                                Monthly Subscription Product
+	                            </div>
+                                <field name="monthly_subscription" options="{'no_create': True, 'no_open': True}"/>
+                            </div>
+                        </div>
+                        <div class="col-12 col-lg-6 o_setting_box" id="yearly_subscription_product_options">
+                            <div class="o_setting_right_pane">
+                                <label for="yearly_subscription" string="Yearly Subscription Product" class="col-lg-4 o_light_label"/>
+	                            <div class="text-muted">
+	                                Yearly Subscription Product
+	                            </div>
+                                <field name="yearly_subscription" options="{'no_create': True, 'no_open': True}"/>
+                            </div>
+                        </div>
+            </xpath>
+        </field>
+    </record>
+
 </odoo>

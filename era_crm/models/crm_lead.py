@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
 from collections import defaultdict
-from datetime import timedelta
+from lxml import etree
+import json 
 
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError
@@ -9,6 +10,8 @@ from odoo.fields import Command
 from odoo.osv import expression
 from odoo.tools import float_is_zero, float_compare, float_round
 from odoo.tools import get_timedelta
+from datetime import date, datetime, time, timedelta
+from dateutil.relativedelta import relativedelta
 
 class ResPartner(models.Model):
     _inherit = "res.partner"
@@ -37,6 +40,28 @@ class Lead(models.Model):
             users = self.env['res.users'].search([('id','=',self.team_id.member_ids.ids)])
             domain = [('share', '=', False), ('company_ids', 'in', self.team_id.member_company_ids.ids,),('id', 'in', users.ids)]
         return domain      
+
+    @api.model
+    def fields_view_get(self, view_id=None, view_type='form', toolbar=False, submenu=False):
+        result = super(Lead, self).fields_view_get(view_id=view_id, view_type=view_type, toolbar=toolbar, submenu=submenu)
+
+        doc = etree.XML(result['arch']) #Get the view architecture of record
+        raise UserError(_(self.env.context))
+        for node in doc.xpath("//field"): #Get all the fields navigating through xpath
+            modifiers = json.loads(node.get("modifiers")) #Get all the existing modifiers of each field
+            domain = [('is_won','=',True)]
+            readonly = modifiers.get('readonly')
+            if readonly:
+                if isinstance(readonly,list):
+                    new_readonly = expression.OR([readonly, domain])
+                    modifiers['readonly'] = new_readonly
+                    node.set('modifiers', json.dumps(modifiers))
+                else:
+                    modifiers['readonly'] = domain
+                    node.set('modifiers', json.dumps(modifiers))
+        result['arch'] = etree.tostring(doc)
+
+        return result
 
     user_id = fields.Many2one(
         'res.users', string='Salesperson', default=lambda self: self.env.user,
@@ -75,13 +100,19 @@ class Lead(models.Model):
         domain="['|', ('company_id', '=', False), ('company_id', '=', company_id)]",
         help="If you change the pricelist, only newly added lines will be affected.")
     tax_totals = fields.Binary(compute='_compute_tax_totals', exportable=False)
-    is_won = fields.Boolean(string='is Won', related='stage_id.is_won')
+    is_won = fields.Boolean(string='is Won', store=True, copy=False)
     recurrence_id = fields.Many2one('sale.temporal.recurrence', string='Recurrence', ondelete='restrict', readonly=False, store=True)
     duration = fields.Integer('Periode', default=12)
     term_condition = fields.Text(string='Term & Conditions',)
     order_template_id = fields.Many2one('mrp.bom', string='Order Template')
 
-    total_base = fields.Monetary(string="Total Amount",
+    total_monthly = fields.Monetary(string="Total Monthly",
+        compute='_compute_expected_revenue',
+        store=True, precompute=True)
+    total_yearly = fields.Monetary(string="Total Yearly",
+        compute='_compute_expected_revenue',
+        store=True, precompute=True)
+    total_onetime = fields.Monetary(string="Total One Time",
         compute='_compute_expected_revenue',
         store=True, precompute=True)
     total_disc = fields.Float(string="Total Disc (%)",
@@ -90,9 +121,7 @@ class Lead(models.Model):
     total_discount = fields.Monetary(string="Total Discount",
         compute='_compute_expected_revenue',
         store=True, precompute=True)
-    total_tax = fields.Monetary(string="Total Tax",
-        compute='_compute_expected_revenue',
-        store=True, precompute=True)
+
 #    order_template_id = fields.Many2one('crm.template', string='Order Template', domain="[('type','=','product')]")
 
     ###### untuk kebutuhan APPROVAL
@@ -116,6 +145,31 @@ class Lead(models.Model):
     ##### PRESALE
     presale_id = fields.Many2one('era.presale', string="Presale")
 
+    ##### TOTAL CONTRACT
+    total_contract = fields.Monetary(string="Total Contract",
+        compute='_compute_expected_revenue',
+        store=True, precompute=True)
+    total_contract_discount = fields.Monetary(string="Special Discount",
+        compute='_compute_expected_revenue',
+        store=True, precompute=True)
+    tax_id = fields.Many2many(
+        comodel_name='account.tax',
+        string="Taxes",
+        store=True, readonly=False,
+        check_company=True)
+    total_tax = fields.Monetary(string="Total Tax",
+        compute='_compute_expected_revenue',
+        store=True, precompute=True)
+    grand_total_contract = fields.Monetary(string="Grand Total",
+        compute='_compute_expected_revenue',
+        store=True, precompute=True)
+    tax_country_id = fields.Many2one('res.country', string="Country", related="company_id.account_fiscal_country_id")
+
+    ####### Supporting Document #####
+    po_data = fields.Binary(string="Purchase Order")
+    po_filename = fields.Char(string="Purchase Order")
+
+
     @api.depends('review_ids')
     def compute_review_status(self):
         for rec in self:
@@ -128,7 +182,7 @@ class Lead(models.Model):
                 else:
                     rec.review_status = "pending"
                 approver = rec.review_ids.filtered(lambda l: l.status == 'pending')
-                rec.approver = approver[0].name if approver else False
+                rec.approver = approver[0].todo_by + ' as ' + approver[0].name + ' ' if approver else False
             else:
                 rec.review_status = "pending"
 
@@ -141,6 +195,18 @@ class Lead(models.Model):
                 rec.revision_bool = True
             else:
                 rec.revision_bool = False
+
+    @api.onchange('stage_id')
+    def _onchange_stage_id_era(self):
+        if self.stage_id.is_won:
+            if self.need_validation or self.review_status!='approved':
+                raise UserError(_('This Opportunity need Validation'))
+            elif self.review_status=='approved':
+                self.is_won = True
+#                raise UserError(_('Approved and create SO'))
+        elif self.is_won:
+                raise UserError(_('This Opportunity already Won, and cannot change Stage to %s')%(self.stage_id.name))
+
 
     @api.onchange('order_id')
     def _onchange_order_id(self):
@@ -164,6 +230,146 @@ class Lead(models.Model):
 
     def action_email_quotation(self):
         raise UserError(_('email quotation'))
+    
+    def _prepare_sale_order_line(self,product_id=False,order_line=False):
+        return {'name':  product_id.name if product_id else order_line.product_id.name, 
+                'product_uom_qty': 1 if product_id else order_line.product_uom_qty, 
+                'price_unit': 0 if product_id else order_line.crm_price_unit,
+                }
+
+    def _cek_subscription(self,recurrence_id):
+            monthly_subscription = self.env['product.product'].browse(int(self.env['ir.config_parameter'].sudo().get_param('sales.monthly_subscription')))
+            yearly_subscription = self.env['product.product'].browse(int(self.env['ir.config_parameter'].sudo().get_param('sales.yearly_subscription')))
+            if recurrence_id==monthly_subscription.product_pricing_ids[0].recurrence_id.id:
+                return monthly_subscription
+            elif recurrence_id==yearly_subscription.product_pricing_ids[0].recurrence_id.id:
+                return yearly_subscription
+            return False
+
+    def _get_sale_order_line_values(self):
+        vals = []
+        self.ensure_one
+        for section in self.order_line.filtered(lambda x: x.display_type=='line_section' and x.order_type=='product'):
+            product_id = self.env['product.product'].search([('default_code','ilike',self.order_id.quotation_no)])
+            seq = 1
+            subtotal = self.order_line.filtered(lambda x: x.display_type=='line_subtotal' and x.order_sequence==section.order_sequence)
+            if not product_id:
+                product_id = self.env['product.product'].create({
+                                        'name': section.name.capitalize(),
+                                        'sale_ok': False,
+                                        'purchase_ok': False,
+                                        'type': 'product',
+                                        'invoice_policy': 'delivery',
+                                        'categ_id': section.product_categ_id.id,
+                                        'default_code': self.order_id.quotation_no + '-'+str(seq).zfill(2),
+                                        'list_price': 0,
+                                        'route_ids': [(6,0,[self.env['stock.route'].search([('name','=','Manufacture')],limit=1).id])]
+                                        })
+                bom_line_ids = []
+                operation_ids = []
+                for workcenter in self.env['mrp.routing.workcenter'].search([('bom_id','=',1)]):
+                    operation_ids.append((0,0,{'name': workcenter.name, 'workcenter_id': workcenter.workcenter_id.id,}))
+                for line in self.order_line.filtered(lambda x: not x.display_type and x.product_id and x.order_sequence==section.order_sequence):
+                    bom_line_ids.append((0,0,{'product_id': line.product_id.id, 'product_qty': line.product_uom_qty, 'product_uom_id': line.product_uom.id,}))
+
+                bom = self.env['mrp.bom'].create({
+                                        'product_tmpl_id': product_id.product_tmpl_id.id,
+                                        'code': self.order_id.quotation_no + '-'+str(seq).zfill(2),
+                                        'recurrence_id': subtotal[0].recurrence_id.id,
+                                        'bom_line_ids': bom_line_ids,
+                                        'operation_ids': operation_ids,
+                                        'consumption': 'strict',
+                                        'type': 'normal',
+                                        })
+            vals.append((0,0,{'name': product_id.name, 
+                              'product_id': product_id.id,
+                              'product_uom_qty': subtotal[0].product_uom_qty,
+                              'product_uom': product_id.uom_id.id,
+                              'price_unit': 0}))
+            seq+=1
+
+
+        for sub_total in self.order_line.filtered(lambda x: x.display_type=='line_subtotal' and x.recurrence_id):
+            if len(sub_total)>1:
+                for subtt in sub_total:
+                    subscription_product = self._cek_subscription(subtt.recurrence_id.id)
+                    pricing_id = self.env['product.pricing'].search([('recurrence_id','=',subtt.recurrence_id.id),('product_template_id','=',subscription_product.product_tmpl_id.id)])
+                    vals.append((0,0,{'name': subtt.name.replace('Subtotal ','Subscriptions'), 
+                                      'product_id': subscription_product.id,
+                                      'product_uom_qty': subtt.product_uom_qty,
+#                                      'product_uom': product_id.uom_id.id,
+                                      'pricing_id': pricing_id.id or False,
+                                      'recurrence_id': subtt.recurrence_id.id,
+                                      'price_unit': subtt.crm_price_subtotal,}))
+            else:
+                subscription_product = self._cek_subscription(sub_total.recurrence_id.id)
+                pricing_id = self.env['product.pricing'].search([('recurrence_id','=',sub_total.recurrence_id.id),('product_template_id','=',subscription_product.product_tmpl_id.id)])
+                vals.append((0,0,{'name': sub_total.name.replace('Subtotal ','Subscriptions'), 
+                                  'product_id': subscription_product.id,
+                                  'product_uom_qty': sub_total.product_uom_qty,
+#                                      'product_uom': product_id.uom_id.id,
+                                  'pricing_id': pricing_id.id or False,
+                                  'recurrence_id': sub_total.recurrence_id.id,
+                                  'price_unit': sub_total.crm_price_subtotal,}))
+
+        for sub_total in self.order_line.filtered(lambda x: x.display_type=='line_subtotal' and not x.recurrence_id):
+            for line in self.order_line.filtered(lambda x: not x.display_type and x.order_sequence==sub_total.order_sequence and not x.recurrence_id):
+                vals.append((0,0,{'name': line.product_id.name, 
+                                  'product_id': line.product_id.id,
+                                  'product_uom_qty': line.product_uom_qty,
+                                  'product_uom': line.product_uom.id,
+                                  'price_unit': (100-line.discount)/100 * (line.crm_price_unit * line.product_uom_qty)}))
+
+
+        return vals
+    
+    def action_create_sale_order(self):
+        if not self.po_filename:
+            raise UserError(_('Please upload Customer Purchase Order'))
+        values = self._prepare_sale_order_values()
+        order = self.env['sale.order'].create(values)
+        order.order_line._compute_tax_id()
+#        action = self._get_associated_so_action()
+#        action['name'] = _('CRM Order')
+#        action['views'] = [(self.env.ref('sale_subscription.sale_subscription_primary_form_view').id, 'form')]
+#        action['res_id'] = order.id
+#        action['context']['create'] = True
+#        return action
+
+    def _prepare_sale_order_values(self):
+        """
+        Create a new draft order with the same lines as the parent subscription. All recurring lines are linked to their parent lines
+        :return: dict of new sale order values
+        """
+        self.ensure_one()
+        subscription = self.with_company(self.company_id)
+        today = fields.Date.today()
+        end_date = datetime.today() + relativedelta(months=self.duration)
+        order_lines = self._get_sale_order_line_values()
+
+        # New
+        internal_note = subscription.description
+        return {
+            'opportunity_id': subscription.id,
+            'pricelist_id': subscription.pricelist_id.id,
+            'partner_id': subscription.partner_id.id,
+            'order_line': order_lines,
+#            'analytic_account_id': subscription.analytic_account_id.id,
+            'origin': subscription.order_id.quotation_no + ' Rev.' + str(self.order_id.quotation_rev).zfill(3),
+            'client_order_ref': subscription.po_filename,
+            'note': internal_note,
+            'user_id': subscription.user_id.id,
+#            'payment_term_id': subscription.payment_term_id.id,
+            'company_id': subscription.company_id.id,
+            'payment_token_id': False,
+            'start_date': today,
+            'end_date': end_date,
+            'next_invoice_date': today,
+            'recurrence_id': subscription.recurrence_id.id,
+            'recurring_monthly': subscription.duration,
+            'internal_note': internal_note,
+        }
+
 
     @api.onchange('order_id', 'order_id.order_line', 'order_id.order_line.product_id','order_id.order_line.product_uom_qty','order_id.order_line.price_unit','order_id.order_line.discount',
             'order_line','order_line.product_uom_qty','order_line.price_unit','order_line.discount','order_line.product_id','expected_revenue', 'order_id.amount_total',
@@ -342,7 +548,9 @@ class Lead(models.Model):
             if len(self.order_line)>0:
                 sequence = self.order_line.sorted(key='sequence', reverse=True)[0].sequence+1
             order_sequence = len(self.order_line.filtered(lambda l: l.display_type=='line_section'))+1
-            order_line.append((0,0,{ 'sequence': sequence, 'name': self.order_template_id.product_tmpl_id.name, 'display_type': 'line_section','order_sequence': order_sequence,}))
+            order_line.append((0,0,{ 'sequence': sequence, 'name': self.order_template_id.product_tmpl_id.name, 
+                                    'display_type': 'line_section','order_sequence': order_sequence, 
+                                    'order_type': 'product', 'product_categ_id': self.order_template_id.product_tmpl_id.categ_id.id}))
             sequence+=1
             for line in self.order_template_id.bom_line_ids:
                 if not product_categ_id:
@@ -378,33 +586,65 @@ class Lead(models.Model):
             self.order_template_id = False
             self._calculate_subtotal()
 
+
+    def _convert_to_tax_base_line_dict(self):
+        """ Convert the current record to a dictionary in order to use the generic taxes computation method
+        defined on account.tax.
+
+        :return: A python dictionary.
+        """
+        self.ensure_one()
+        return self.env['account.tax']._convert_to_tax_base_line_dict(
+            self,
+            partner=self.order_id.partner_id,
+            currency=self.order_id.currency_id,
+            product=False,
+            taxes=self.tax_id,
+            price_unit=self.total_contract,
+            quantity=1,
+            discount=self.total_disc,
+#            price_subtotal=self.total_contract,
+        )
        
-    @api.depends('order_id', 'order_id.amount_total', 'currency_id','order_line', 'order_line.price_unit', 'order_line.discount', 'order_line.product_uom_qty')
+    @api.depends('order_id', 'order_id.amount_total', 'currency_id','order_line', 'order_line.price_unit', 'order_line.discount', 'order_line.product_uom_qty', 'tax_id')
     def _compute_expected_revenue(self):
         for order in self:
             order._calculate_subtotal()
-            total_base = total_disc = total_discount = total_tax = 0
-            total_base = sum(line.crm_price_unit * line.product_uom_qty for line in order.order_line.filtered(lambda l: not l.display_type))
-            total_discount = sum(line.crm_price_subtotal for line in order.order_line.filtered(lambda l: l.display_type=='line_subtotal'))
-            if total_base>0:
-                total_disc = (total_base-total_discount)/total_base * 100
-            expected_revenue = 0
-            expected_revenue = sum(line.crm_price_subtotal for line in order.order_line.filtered(lambda l: l.display_type=='line_subtotal'))
-            order.update({'expected_revenue': expected_revenue,
-                          'total_base': total_base,
-                          'total_disc': total_disc,
-                          'total_discount': total_base-total_discount,})
+            total_monthly = total_discount = total_tax = 0
+            order.total_disc =0
+            total_monthly = sum(line.crm_price_subtotal for line in order.order_line.filtered(lambda l: l.display_type=='line_subtotal' and l.recurrence_id.unit=='month'))
+            total_yearly = sum(line.crm_price_subtotal  for line in order.order_line.filtered(lambda l: l.display_type=='line_subtotal' and l.recurrence_id.unit=='year'))
+            total_onetime = sum(line.crm_price_subtotal for line in order.order_line.filtered(lambda l: l.display_type=='line_subtotal' and not l.recurrence_id))
+            bruto_total_monthly = sum(line.crm_price_unit * line.product_uom_qty  for line in order.order_line.filtered(lambda l: l.display_type=='line_subtotal' and l.recurrence_id.unit=='month'))
+            bruto_total_yearly = sum(line.crm_price_unit * line.product_uom_qty   for line in order.order_line.filtered(lambda l: l.display_type=='line_subtotal' and l.recurrence_id.unit=='year'))
+            bruto_total_onetime = sum(line.crm_price_unit * line.product_uom_qty  for line in order.order_line.filtered(lambda l: l.display_type=='line_subtotal' and not l.recurrence_id))
+
+            total_contract = (total_monthly * order.duration) + total_yearly + total_onetime
+            total_contract_bruto = (bruto_total_monthly * order.duration) + bruto_total_yearly + bruto_total_onetime
+            total_discount = total_contract_bruto - total_contract
+            if total_contract>0:
+                self.total_disc = total_discount/total_contract_bruto * 100
+
+            order.total_contract = total_contract_bruto
+
+            tax_results = self.env['account.tax']._compute_taxes([order._convert_to_tax_base_line_dict()])
+            totals = list(tax_results['totals'].values())[0]
+            amount_untaxed = totals['amount_untaxed']
+            order.total_tax = totals['amount_tax']
+
+            grand_total = sum(line.crm_price_unit * line.product_uom_qty   for line in order.order_line.filtered(lambda l: l.display_type=='line_subtotal'))
+
+            order.update({'expected_revenue': grand_total,
+                          'total_monthly': total_monthly,
+                          'total_yearly': total_yearly,
+                          'total_onetime': total_onetime,
+#                          'total_contract': amount_untaxed,
+                          'total_contract_discount': total_discount,
+#                          'total_disc': total_disc,
+                          'total_discount': total_discount,
+                          'grand_total_contract': total_contract + order.total_tax})
 #            order.order_id.update({'amount_total': expected_revenue,})
 
-
-    @api.depends('order_line.tax_id', 'order_line.price_unit', 'expected_revenue', 'currency_id')
-    def _compute_tax_totals(self):
-        for order in self:
-            order_lines = order.order_line.filtered(lambda x: not x.display_type)
-            order.tax_totals = self.env['account.tax']._prepare_tax_totals(
-                [x._convert_to_tax_base_line_dict() for x in order_lines],
-                order.currency_id or order.company_id.currency_id,
-            )
 
     @api.depends('partner_id')
     def _compute_pricelist_id(self):

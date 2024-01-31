@@ -57,12 +57,13 @@
                 <button string="Print Quotation" name="action_print_quotation" type="object" class="oe_highlight"  title="Print Quotation" attrs="{'invisible': ['|',('need_validation', '!=', False),('validated', '!=', True)]}"/>
                 <button string="Email Quotation" name="action_email_quotation" type="object" class="oe_highlight"  title="Email Quotation" attrs="{'invisible': ['|',('need_validation', '!=', False),('validated', '!=', True)]}"/>
                 <button name="%(crm.crm_lead_lost_action)d" string="Lost" data-hotkey="l" title="Mark as lost"
-                    type="action" context="{'default_lead_id': active_id}" attrs="{'invisible': ['|', ('type', '=', 'lead'), '&amp;',('active', '=', False),('probability', '&lt;', 100)]}"/>
+                    type="action" context="{'default_lead_id': active_id}" attrs="{'invisible': ['|',('is_won','=',True),'|', ('type', '=', 'lead'), '&amp;',('active', '=', False),('probability', '&lt;', 100)]}"/>
 
             <button name="request_validation" string="Request Validation" 
-                attrs="{'invisible': ['|',('need_validation', '!=', True),('rejected','=',True)]}" type="object"/>
+                attrs="{'invisible': ['|','|',('is_won','=',True),('need_validation', '!=', True),('rejected','=',True)]}" type="object"/>
             <button name="restart_validation" string="Restart Validation" 
-                attrs="{'invisible': [('review_ids', '=', [])]}" type="object"/>
+                attrs="{'invisible': ['|',('is_won','=',True),('review_ids', '=', [])]}" type="object"/>
+                <button string="Confirm Order" name="action_create_sale_order" type="object" class="oe_highlight" title="Create new sales order" attrs="{'invisible': [('sale_order_count','!=',0),('is_won', '=', False), ('validated', '=', True)]}"/>
 
             </button>
 
@@ -139,36 +140,47 @@ style="margin-bottom:0px;">
                 <field name="fiscal_position_id" invisible="1"/>
                 <field name="state" invisible="1"/>
                 <field name="revision_bool" invisible="1"/>
+                <field name="sale_order_count" invisible="1"/>
                 <field name="review_status" invisible="1"/>
                 <field name="is_won" invisible="1"/>
                 <field name="order_id" invisible="1"/>
                 <field name="currency_id" invisible="1"/>
             </field>
-            <xpath expr="//form/sheet/group" position="after">
-                <group string="Requirements" attrs="{ 'readonly': [('is_won','=',True)]}">
-                    <group >
+            <xpath expr="//form/sheet/notebook" position="before">
+                <group attrs="{ 'readonly': [('is_won','=',True)]}">
+                    <group string="Requirements" attrs="{ 'readonly': [('is_won','=',True)]}">
                         <label name="recurrence_label" for="recurrence_id"/>
-                        <div class="o_row" name="recurrence_block" attrs="{ 'readonly': [('sale_order_count','>=',1)]}">
+                        <div class="o_row" name="recurrence_block" attrs="{ 'readonly': ['|',('is_won','=',True),('sale_order_count','>=',1)]}">
                             <field name="recurrence_id" 
-                                   domain="[('unit', 'not in', ['hour', 'day'])]" attrs="{ 'readonly': [('sale_order_count','>=',1)]}"
+                                   domain="[('unit', 'not in', ['hour', 'day'])]" 
                                    options="{'no_create': True}"/>
                             <span> Periode</span>
                             <field name="duration" attrs="{ 'readonly': [('sale_order_count','>=',1)]}"/>
                         </div>
                     </group>
-                    <group readonly="1" force_save="1">
-                        <field name="expected_revenue" string="Expected Sales" style="font-size: 20px;"/>
-                        <label for="probability" string="Probability" style="font-size: 20px;"/>
+                    <group string="Expected Sales" readonly="1" force_save="1">
+                        <field name="expected_revenue" string="Expected Sales" style="font-size: 20px;" invisible="1"/>
+                        <label for="probability" string="Probability" />
                         <div>
-                            <field name="probability" class="oe_inline" style="font-size: 20px;" attrs="{ 'readonly': [('sale_order_count','>=',1)]}"/>
-                            <span style="font-size: 20px;">%</span>
+                            <field name="probability" class="oe_inline"  attrs="{ 'readonly': [('sale_order_count','>=',1)]}"/>
+                            <span>%</span>
                         </div>
+                        <field name="total_contract" readonly="1" force_save="1"/>
+                        <field name="total_disc" readonly="1"/>
+                        <field name="total_contract_discount" readonly="1" force_save="1"/>
+                        <field name="tax_id" widget="many2many_tags" options="{'no_create': True}"
+                                    domain="[('type_tax_use','=','sale'),('company_id','in',[company_id,False]), ('country_id', '=', tax_country_id)]"
+                                    context="{'active_test': True}"
+                                />
+                        <field name="total_tax" readonly="1" force_save="1"/>
+                        <field name="grand_total_contract" readonly="1" force_save="1"/>
+                        <field name="tax_country_id" invisible="1"/>
                     </group>
                 </group>
             </xpath>
             <page name="internal_notes" position="before">
                 <page string="Order Lines" name="order_lines" attrs="{ 'readonly': [('is_won','=',True)], 'invisible': [('order_id','=',False)]}">
-                    <group>
+                    <group attrs="{ 'readonly': [('is_won','=',True)]}">
                         <label for="order_template_id" string='Order Template' />
                         <div>
                             <field name="order_template_id" options="{ 'no_create': True}" class="oe_inline"/>
@@ -183,6 +195,7 @@ style="margin-bottom:0px;">
                                         'default_order_id': order_id,
                                         'default_currency_id': currency_id,
                                     }"
+                            attrs="{ 'readonly': [('is_won','=',True)]}"
                         >
                             <tree
                                 string="Sales Order Lines"
@@ -325,7 +338,7 @@ style="margin-bottom:0px;">
                                     name="crm_price_unit" string='Price Unit' force_save="1" readonly="1"
                                 />
                                 <field
-                                    name="tax_id"
+                                    name="tax_id" invisible="1"
                                     widget="many2many_tags"
                                     options="{'no_create': True}"
                                     domain="[('type_tax_use','=','sale'),('company_id','=',company_id), ('country_id', '=', tax_country_id)]"
@@ -359,7 +372,7 @@ style="margin-bottom:0px;">
 -->
                 </page>
                 <page string="Order Summary" name="summary_order_lines" attrs="{ 'readonly': [('is_won','=',True)],'invisible': [('order_id','=',False)]}">
-                    <field name="summary_order_line" mode="tree" >
+                    <field name="summary_order_line" mode="tree" attrs="{ 'readonly': [('is_won','=',True)]}">
                         <tree string="Summary Order" create='false' delete='false' editable="bottom" >
                             <field name="name" readonly="1" force_save="1"/>
                             <field name="product_uom_qty" readonly="1" force_save="1"/>
@@ -373,19 +386,18 @@ style="margin-bottom:0px;">
                         </tree>
                     </field>
                     <group class="oe_subtotal_footer oe_right" colspan="2" name="crm_quotation_total">
-                        <field name="total_base" widget='monetary' readonly="1"/>
-                        <field name="total_disc" readonly="1"/>
-                        <field name="total_discount" widget='monetary' readonly="1"/>
-                        <field name="expected_revenue" widget='monetary' readonly="1"/>
+                        <field name="total_monthly" widget='monetary' readonly="1"/>
+                        <field name="total_yearly" widget='monetary' readonly="1"/>
+                        <field name="total_onetime" widget='monetary' readonly="1"/>
                     </group>
                 </page>
                 <page string="Term and Conditions" name="term_conditions" attrs="{ 'invisible': [('order_id','=',False)], 'readonly': [('is_won','=',True)]}">
                             <group colspan="4">
-                                <field colspan="2" name="term_condition" nolabel="1" placeholder="Terms and conditions..."/>
+                                <field colspan="2" name="term_condition" nolabel="1" placeholder="Terms and conditions..." attrs="{ 'readonly': [('is_won','=',True)]}"/>
                             </group>
                 </page>
                 <page string="Pre-Sales / Operations" name="pre_sales" attrs="{ 'invisible': [('order_id','=',False)], 'readonly': [('is_won','=',True)]}">
-                    <group>
+                    <group attrs="{ 'readonly': [('is_won','=',True)]}">
                         <group string="Pre-Sales">
                             <span> Request Trial / POC  to Pre-Sales Team </span>
                             <field name="presale_id">
@@ -406,6 +418,14 @@ style="margin-bottom:0px;">
                         </group>
                         <group string="Operations">
                             <span> Request Implementation to Operations Team </span>
+                        </group>
+                    </group>
+                </page>
+                <page string="Supporting Document" name="supporting_document" attrs="{ 'invisible': [('order_id','=',False)], 'readonly': [('is_won','=',True)]}">
+                    <group>
+                        <group>
+    						<field name="po_data" filename="po_filename" widget="binary"/>
+	    					<field name="po_filename" invisible='1'/>
                         </group>
                     </group>
                 </page>
