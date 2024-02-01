@@ -181,6 +181,52 @@ First of all, we would like to thank your interest and the opportunity for us to
                             </tr>
                         </t>
                     </t>
+                    <tr style="border: none;padding: 5px 5px 5px 5px;text-align: right;">
+                        <td colspan="3" style="border: none;padding: 5px 5px 5px 5px;text-align: right;"/>
+                        <td colspan="2" style="border:1px solid;padding: 5px 5px 5px 5px;text-align: right;">
+                            <span t-esc="'Total Contract ' + str(doc.lead_id.duration) + ' Months'"/>
+                        </td>
+                        <td style="width: 20%;border:1px solid;padding: 5px 5px 5px 5px;text-align: right;">
+                            <span t-esc="line.currency_id.symbol + '{:{fill}{align}20,.2f}'.format(doc.lead_id.total_contract,fill=' ',align='>')"/>
+                        </td>
+                    </tr>
+                    <tr style="border: none;padding: 5px 5px 5px 5px;text-align: right;">
+                        <td colspan="3" style="border: none;padding: 5px 5px 5px 5px;text-align: right;"/>
+                        <td colspan="2" style="border:1px solid;padding: 5px 5px 5px 5px;text-align: right;">
+                            <span t-esc="'Special Discount'"/>
+                        </td>
+                        <td style="width: 20%;border:1px solid;padding: 5px 5px 5px 5px;text-align: right;">
+                            <span t-esc="line.currency_id.symbol + '{:{fill}{align}20,.2f}'.format(doc.lead_id.total_contract_discount,fill=' ',align='>')"/>
+                        </td>
+                    </tr>
+                    <tr style="border: none;padding: 5px 5px 5px 5px;text-align: right;">
+                        <td colspan="3" style="border: none;padding: 5px 5px 5px 5px;text-align: right;"/>
+                        <td colspan="2" style="border:1px solid;padding: 5px 5px 5px 5px;text-align: right;">
+                            <span t-esc="'Total Contract After Discount'"/>
+                        </td>
+                        <td style="width: 20%;border:1px solid;padding: 5px 5px 5px 5px;text-align: right;">
+                            <span t-esc="line.currency_id.symbol + '{:{fill}{align}20,.2f}'.format(doc.lead_id.total_contract-doc.lead_id.total_contract_discount,fill=' ',align='>')"/>
+                        </td>
+                    </tr>
+                    <tr style="border: none;padding: 5px 5px 5px 5px;text-align: right;">
+                        <td colspan="3" style="border: none;padding: 5px 5px 5px 5px;text-align: right;"/>
+                        <td colspan="2" style="border:1px solid;padding: 5px 5px 5px 5px;text-align: right;">
+                            <span t-esc="'Taxes'"/>
+                        </td>
+                        <td style="width: 20%;border:1px solid;padding: 5px 5px 5px 5px;text-align: right;">
+                            <span t-esc="line.currency_id.symbol + '{:{fill}{align}20,.2f}'.format(doc.lead_id.total_tax,fill=' ',align='>')"/>
+                        </td>
+                    </tr>
+                    <tr style="border: none;padding: 5px 5px 5px 5px;text-align: right;">
+                        <td colspan="3" style="border: none;padding: 5px 5px 5px 5px;text-align: right;"/>
+                        <td colspan="2" style="border:1px solid;padding: 5px 5px 5px 5px;text-align: right;">
+                            <span t-esc="'GRAND TOTAL'"/>
+                        </td>
+                        <td style="width: 20%;border:1px solid;padding: 5px 5px 5px 5px;text-align: right;">
+                            <span t-esc="line.currency_id.symbol + '{:{fill}{align}20,.2f}'.format(doc.lead_id.grand_total_contract,fill=' ',align='>')"/>
+                        </td>
+                    </tr>
+
                 </tbody>
             </table>
 <!--
