@@ -24,7 +24,10 @@ class SaleOrder(models.Model):
                     self, fields.Datetime.to_datetime(vals['date_order'])
                 ) if 'date_order' in vals else None
                 lead_id = self.env['crm.lead'].browse(vals['lead_id'])
-                era_code = lead_id.team_id.team_initial + '-' + lead_id.user_id.partner_id.partner_initial
+                if lead_id.team_id and lead_id.user_id and lead_id.team_id.team_initial and lead_id.user_id.partner_id.partner_initial:
+                    era_code = lead_id.team_id.team_initial + '-' + lead_id.user_id.partner_id.partner_initial
+                else:
+                    era_code = "GN-SP"                    
                 vals['quotation_no']= self.env['ir.sequence'].next_by_code_era(
                                 'quotation.sequence', era_code,sequence_date=seq_date) or _("New")
                 vals['name'] = vals['quotation_no']
@@ -275,5 +278,6 @@ class SaleOrderLine(models.Model):
             )[:1]
 
             if not line.pricing_id:
-                line.pricing_id = self.env['product.pricing'].search([('recurrence_id','=',self.recurrence_id.id),('product_template_id','=',self.product_id.product_tmpl_id.id)], limit=1).id
+                if self.recurrence_id and self.product_id:
+                    line.pricing_id = self.env['product.pricing'].search([('recurrence_id','=',self.recurrence_id.id),('product_template_id','=',self.product_id.product_tmpl_id.id)], limit=1).id
 
