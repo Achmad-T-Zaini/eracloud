@@ -695,7 +695,9 @@ class Lead(models.Model):
                 self.term_condition = term_condition.value_text 
 
     def write(self,vals):
-        order_sequence = self.order_id.order_line.sorted(key='order_sequence', reverse=True)[0].order_sequence
+        order_sequence = 0
+        if self.order_id.order_line:
+            order_sequence = self.order_id.order_line.sorted(key='order_sequence', reverse=True)[0].order_sequence
         if vals.get('order_line',False):
             for line in vals['order_line']:
                 if line[2]!=False:
@@ -710,7 +712,9 @@ class Lead(models.Model):
 
         new_subtotal = self.order_line.filtered(lambda x: x.display_type=='line_subtotal')
         if new_subtotal:
+            ord_seq = []
             for line in new_subtotal:
+                ord_seq.append(line.order_sequence)
                 summ_vals = {}
                 if line.product_uom_qty==0:
                     line.product_uom_qty = 1
@@ -735,6 +739,9 @@ class Lead(models.Model):
                 else:
                     summ_vals = {'price_unit': sum(lp.crm_price_subtotal for lp in line_product),}
                 line_summary.update(summ_vals)
+            ord_summ = self.env['crm.order.summary'].search([('order_sequence','not in',ord_seq),('lead_id','=',self.id)])
+            ord_summ.unlink()
+#            raise UserError(_('dd %s')%(ord_summ))
         return res
 
 class Lead(models.Model):
