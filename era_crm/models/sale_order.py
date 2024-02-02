@@ -278,6 +278,6 @@ class SaleOrderLine(models.Model):
             )[:1]
 
             if not line.pricing_id:
-                if self.recurrence_id and self.product_id:
-                    line.pricing_id = self.env['product.pricing'].search([('recurrence_id','=',self.recurrence_id.id),('product_template_id','=',self.product_id.product_tmpl_id.id)], limit=1).id
+                if line.recurrence_id and line.product_id:
+                    line.pricing_id = self.env['product.pricing'].search([('recurrence_id','=',line.recurrence_id.id),('product_template_id','=',line.product_id.product_tmpl_id.id)], limit=1).id
 
