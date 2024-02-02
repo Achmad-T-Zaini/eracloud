@@ -568,9 +568,6 @@ class Lead(models.Model):
                                             'product_uom_qty': 1, 'price_unit': subtotal,'crm_price_unit': subtotal,'sequence': sequence, 'order_type': order_type,
                                             'display_type': 'line_subtotal','order_sequence': order_sequence,  'product_categ_id': product_categ_id.id,
                                             'recurrence_id': self.order_template_id.recurrence_id.id}))
-                    summary_order_line.append((0,0,{ 'name': name, 
-                                            'product_uom_qty': 0, 'price_unit': subtotal, 'order_type': order_type, 'product_categ_id': product_categ_id.id,
-                                            'order_sequence': order_sequence,'recurrence_id': self.order_template_id.recurrence_id.id}))
                     product_categ_id = line.product_id.categ_id
                     name = self.order_template_id.product_tmpl_id.name + ' ' + product_categ_id.name.capitalize()
                     subtotal = 0
@@ -581,9 +578,6 @@ class Lead(models.Model):
                                             'product_uom_qty': 1, 'price_unit': subtotal,'crm_price_unit': subtotal,'sequence': sequence, 'order_type': order_type,
                                             'display_type': 'line_subtotal','order_sequence': order_sequence, 'product_categ_id': product_categ_id.id,
                                             'recurrence_id': self.order_template_id.recurrence_id.id}))
-            summary_order_line.append((0,0,{ 'name': name, 
-                                            'product_uom_qty': 0, 'price_unit': subtotal, 'order_type': order_type, 'product_categ_id': product_categ_id.id,
-                                            'order_sequence': order_sequence,'recurrence_id': self.order_template_id.recurrence_id.id}))
             self.order_line = order_line
             self.summary_order_line = summary_order_line
             self.order_template_id = False
