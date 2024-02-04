@@ -34,6 +34,10 @@ class Lead(models.Model):
     _state_from = ['draft']
     _state_to = ['quotation']
 
+
+    def _get_recurrence_default(self):
+        return self.env['sale.temporal.recurrence'].search([('unit','=','month'),('duration','=',1)], limit=1).id
+
     def _get_domain_team(self):
         domain = [('share', '=', False), ('company_ids', 'in', self.team_id.member_company_ids.ids,)]
         if self.team_id:
@@ -101,10 +105,10 @@ class Lead(models.Model):
         help="If you change the pricelist, only newly added lines will be affected.")
     tax_totals = fields.Binary(compute='_compute_tax_totals', exportable=False)
     is_won = fields.Boolean(string='is Won', store=True, copy=False)
-    recurrence_id = fields.Many2one('sale.temporal.recurrence', string='Recurrence', ondelete='restrict', readonly=False, store=True)
+    recurrence_id = fields.Many2one('sale.temporal.recurrence', string='Recurrence', ondelete='restrict', readonly=False, store=True, default=_get_recurrence_default)
     duration = fields.Integer('Periode', default=12)
     term_condition = fields.Text(string='Term & Conditions',)
-    order_template_id = fields.Many2one('mrp.bom', string='Order Template')
+    order_template_id = fields.Many2one('mrp.bom', string='Order Template', domain="[('product_tmpl_id.sale_ok','=',True)]")
 
     total_monthly = fields.Monetary(string="Total Monthly",
         compute='_compute_expected_revenue',
@@ -254,10 +258,13 @@ class Lead(models.Model):
         return domain      
 
     def action_print_quotation(self):
-        self.order_id.quotation_rev+=1
+        if not self.is_won:
+            self.order_id.quotation_rev+=1
         return self.env.ref('era_crm.action_crm_quotation').report_action(self)
 
     def action_email_quotation(self):
+        if not self.is_won:
+            self.order_id.quotation_rev+=1
         raise UserError(_('email quotation'))
     
     def _prepare_sale_order_line(self,product_id=False,order_line=False):
@@ -358,6 +365,7 @@ class Lead(models.Model):
         values = self._prepare_sale_order_values()
         order = self.env['sale.order'].create(values)
         order.order_line._compute_tax_id()
+        order.action_confirm()
 #        action = self._get_associated_so_action()
 #        action['name'] = _('CRM Order')
 #        action['views'] = [(self.env.ref('sale_subscription.sale_subscription_primary_form_view').id, 'form')]
@@ -639,7 +647,9 @@ class Lead(models.Model):
             order._calculate_subtotal()
             total_monthly = total_discount = total_tax = 0
             order.total_disc =0
-            order.max_disc = self.order_id.order_line.sorted(key='discount', reverse=True)[0].discount
+            order.max_disc = 0
+            if order.order_id and order.order_id.order_line:
+                order.max_disc = order.order_id.order_line.sorted(key='discount', reverse=True)[0].discount
             total_monthly = sum(line.crm_price_subtotal for line in order.order_line.filtered(lambda l: l.display_type=='line_subtotal' and l.recurrence_id.unit=='month'))
             total_yearly = sum(line.crm_price_subtotal  for line in order.order_line.filtered(lambda l: l.display_type=='line_subtotal' and l.recurrence_id.unit=='year'))
             total_onetime = sum(line.crm_price_subtotal for line in order.order_line.filtered(lambda l: l.display_type=='line_subtotal' and not l.recurrence_id))
@@ -747,9 +757,9 @@ class Lead(models.Model):
                 line_section = self.order_line.filtered(lambda x: x.display_type=='line_section' and x.order_sequence==line.order_sequence )
                 for section in line_section:
                     line_product = self.order_line.filtered(lambda x: x.order_sequence==line.order_sequence and x.product_categ_id.id==line.product_categ_id.id and x.product_id)
-                    name = line_section.name
+                    name = section.name
                     if section.name and line.product_categ_id:
-                        name = line_section.name + ' ' + line.product_categ_id.name.title() 
+                        name = section.name + ' ' + line.product_categ_id.name.title() 
                     line_summary = self.summary_order_line.filtered(lambda x: x.order_sequence==line.order_sequence and x.product_categ_id.id==line.product_categ_id.id )
                     if not line_summary and line_product:
                         ord_val = self.prepare_summary_order_line(name,line_product[0])

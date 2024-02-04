@@ -1,17 +1,19 @@
 # -*- coding: utf-8 -*-
 
 from odoo import api, fields, models, _
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 from odoo.tools import float_is_zero, float_compare, float_round
 from dateutil.relativedelta import relativedelta
+from datetime import date, datetime, time, timedelta
 
+import calendar
 
 class SaleOrder(models.Model):
     _inherit = 'sale.order'
 
     lead_id = fields.Many2one('crm.lead', string='CRM Lead', readonly=True)
     quotation_no = fields.Char(string='Quotation', store=True, readonly=True)
-    quotation_rev = fields.Integer(string='Rev.', store=True, readonly=True, default=0)
+    quotation_rev = fields.Integer(string='Rev.', store=True, readonly=True, default=-1)
     mrp_order_line = fields.One2many('sale.order.line','mrp_order_id',string='MRP Order Line', domain="[('manufacture_id','!='.False)]")
 
     @api.model_create_multi
@@ -82,54 +84,7 @@ class SaleOrder(models.Model):
                         sol_update.write({'price_unit': line_subtotal,})
 
 
-
-    def _get_invoiceable_lines(self, final=False):
-        date_from = fields.Date.today()
-        res = super()._get_invoiceable_lines(final=final)
-        res = res.filtered(lambda l: l.temporal_type != 'subscription' or l.order_id.subscription_management == 'upsell')
-        automatic_invoice = self.env.context.get('recurring_automatic')
-
-        invoiceable_line_ids = []
-        downpayment_line_ids = []
-        pending_section = None
-
-        for line in self.order_line:
-            if line.display_type == 'line_section':
-                # Only add section if one of its lines is invoiceable
-                pending_section = line
-                continue
-
-            time_condition = line.order_id.next_invoice_date and line.order_id.next_invoice_date <= date_from and line.order_id.start_date and line.order_id.start_date <= date_from
-            line_condition = time_condition or not automatic_invoice # automatic mode force the invoice when line are not null
-            line_to_invoice = False
-            if line in res:
-                # Line was already marked as to be invoiced
-                line_to_invoice = True
-            elif line.order_id.subscription_management == 'upsell':
-                # Super() already select everything that is needed for upsells
-                line_to_invoice = False
-            elif line.display_type or line.temporal_type != 'subscription':
-                # Avoid invoicing section/notes or lines starting in the future or not starting at all
-                line_to_invoice = False
-            elif line_condition and line.product_id.invoice_policy == 'order' and line.order_id.state == 'sale':
-                # Invoice due lines
-                line_to_invoice = True
-            elif line_condition and line.product_id.invoice_policy == 'delivery' and (not float_is_zero(line.qty_delivered, precision_rounding=line.product_id.uom_id.rounding)):
-                line_to_invoice = True
-
-            if line_to_invoice:
-                if line.is_downpayment:
-                    # downpayment line must be kept at the end in its dedicated section
-                    downpayment_line_ids.append(line.id)
-                    continue
-                if pending_section:
-                    invoiceable_line_ids.append(pending_section.id)
-                    pending_section = False
-                invoiceable_line_ids.append(line.id)
-
-        return self.env["sale.order.line"].browse(invoiceable_line_ids + downpayment_line_ids)
-
-    @api.depends('is_subscription', 'state', 'start_date', 'subscription_management','order_line', 'order_line.invoice_lines')
+    @api.depends('is_subscription', 'state', 'start_date', 'subscription_management','invoice_count')
     def _compute_next_invoice_date(self):
         for so in self:
             last_invoice = False
@@ -138,12 +93,19 @@ class SaleOrder(models.Model):
             if not so.is_subscription and not so.subscription_management == 'upsell':
                 so.next_invoice_date = False
                 continue
-            elif not last_invoice:
-                so.next_invoice_date = so.start_date or fields.Date.today()
             elif not so.next_invoice_date and so.state == 'sale':
                 # Define a default next invoice date.
                 # It is increased manually by _update_next_invoice_date when necessary
                 so.next_invoice_date = so.start_date or fields.Date.today()
+
+            if len(so.invoice_ids)==0:
+                so.next_invoice_date = so.start_date or fields.Date.today()
+#            raise UserError(_('cek %s = %s')%(len(so.invoice_ids),so.invoice_count))
+
+    def _get_invoiceable_lines(self, final=False):
+        res = super()._get_invoiceable_lines(final=final)
+        return res.filtered(lambda l: l.price_unit>0)
+    
 
 class SaleOrderLine(models.Model):
     _inherit = 'sale.order.line'
@@ -359,4 +321,21 @@ class SaleOrderLine(models.Model):
             if not line.pricing_id:
                 if line.recurrence_id and line.product_id:
                     line.pricing_id = self.env['product.pricing'].search([('recurrence_id','=',line.recurrence_id.id),('product_template_id','=',line.product_id.product_tmpl_id.id)], limit=1).id
+
+    def _prepare_invoice_line(self, **optional_values):
+        res = super()._prepare_invoice_line( **optional_values)
+        if self.recurrence_id.unit=='month' and self.order_id.date_order.date()==self.order_id.next_invoice_date:
+            subscription_end_date = datetime(year=self.order_id.date_order.year, month=self.order_id.date_order.month+1,day=1) - relativedelta(days=1)
+            num_days = calendar.monthrange(self.order_id.date_order.year, self.order_id.date_order.month)[1]
+            res['name'] = res['name'][:-10] + subscription_end_date.strftime('%m/%d/%Y')
+            res['price_unit'] = (self.price_unit / num_days) * (num_days - self.order_id.date_order.day)
+            res['subscription_end_date']=subscription_end_date.date()
+        elif self.recurrence_id.unit=='year' and self.order_id.date_order.date()==self.order_id.next_invoice_date:
+            subscription_end_date = datetime(year=self.order_id.date_order.year+1, month=self.order_id.date_order.month,day=self.order_id.date_order.day) - relativedelta(days=1)
+            res['name'] = res['name'].replace('month','year')[:-10] + subscription_end_date.strftime('%m/%d/%Y')
+#            res['subscription_end_date']=subscription_end_date.date()
+#        raise UserError(_('vals %s')%(res))
+            
+        return res
+
 

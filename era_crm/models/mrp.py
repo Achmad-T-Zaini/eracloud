@@ -10,6 +10,10 @@ class MrpProduction(models.Model):
 
     workorder_status = fields.Char(string='WO Status')
 
+    @api.onchange('state')
+    def _onchange_state_era(self):
+        self.update({'workorder_status': self.name + ' ' + dict(self._fields['state'].selection).get(self.state)})
+
 class MrpWorkorder(models.Model):
     _inherit = 'mrp.workorder'
 
@@ -26,5 +30,6 @@ class MrpWorkorder(models.Model):
 
     def button_finish(self):
         res = super().button_finish()
-        self.production_id.update({'workorder_status': self.name + ' ' + dict(self._fields['state'].selection).get(self.state)})
+        for line in self:
+            line.production_id.update({'workorder_status': line.name + ' ' + dict(line._fields['state'].selection).get(line.state)})
         return res
