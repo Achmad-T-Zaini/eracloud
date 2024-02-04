@@ -115,6 +115,9 @@ class Lead(models.Model):
     total_onetime = fields.Monetary(string="Total One Time",
         compute='_compute_expected_revenue',
         store=True, precompute=True)
+    max_disc = fields.Float(string="Max Disc (%)",
+        compute='_compute_expected_revenue',
+        store=True, precompute=True)
     total_disc = fields.Float(string="Total Disc (%)",
         compute='_compute_expected_revenue',
         store=True, precompute=True)
@@ -202,10 +205,36 @@ class Lead(models.Model):
             if self.need_validation and self.review_status!='approved':
                 raise UserError(_('This Opportunity need Validation'))
             elif not self.need_validation or self.review_status=='approved':
-                self.is_won = True
+                self.action_set_won()
 #                raise UserError(_('Approved and create SO'))
         elif self.is_won:
                 raise UserError(_('This Opportunity already Won, and cannot change Stage to %s')%(self.stage_id.name))
+
+    def action_set_won(self):
+        """ Won semantic: probability = 100 (active untouched) """
+        self.action_unarchive()
+        # group the leads by team_id, in order to write once by values couple (each write leads to frequency increment)
+        leads_by_won_stage = {}
+        for lead in self:
+            won_stages = self._stage_find(domain=[('is_won', '=', True)], limit=None)
+            # ABD : We could have a mixed pipeline, with "won" stages being separated by "standard"
+            # stages. In the future, we may want to prevent any "standard" stage to have a higher
+            # sequence than any "won" stage. But while this is not the case, searching
+            # for the "won" stage while alterning the sequence order (see below) will correctly
+            # handle such a case :
+            #       stage sequence : [x] [x (won)] [y] [y (won)] [z] [z (won)]
+            #       when in stage [y] and marked as "won", should go to the stage [y (won)],
+            #       not in [x (won)] nor [z (won)]
+            stage_id = next((stage for stage in won_stages if stage.sequence > lead.stage_id.sequence), None)
+            if not stage_id:
+                stage_id = next((stage for stage in reversed(won_stages) if stage.sequence <= lead.stage_id.sequence), won_stages)
+            if stage_id in leads_by_won_stage:
+                leads_by_won_stage[stage_id] += lead
+            else:
+                leads_by_won_stage[stage_id] = lead
+        for won_stage_id, leads in leads_by_won_stage.items():
+            leads.write({'stage_id': won_stage_id.id, 'probability': 100, 'is_won': True})
+        return True
 
 
     @api.onchange('order_id')
@@ -342,6 +371,7 @@ class Lead(models.Model):
         :return: dict of new sale order values
         """
         self.ensure_one()
+        self.company_id = self.env.company.id
         subscription = self.with_company(self.company_id)
         today = fields.Date.today()
         end_date = datetime.today() + relativedelta(months=self.duration)
@@ -609,6 +639,7 @@ class Lead(models.Model):
             order._calculate_subtotal()
             total_monthly = total_discount = total_tax = 0
             order.total_disc =0
+            order.max_disc = self.order_id.order_line.sorted(key='discount', reverse=True)[0].discount
             total_monthly = sum(line.crm_price_subtotal for line in order.order_line.filtered(lambda l: l.display_type=='line_subtotal' and l.recurrence_id.unit=='month'))
             total_yearly = sum(line.crm_price_subtotal  for line in order.order_line.filtered(lambda l: l.display_type=='line_subtotal' and l.recurrence_id.unit=='year'))
             total_onetime = sum(line.crm_price_subtotal for line in order.order_line.filtered(lambda l: l.display_type=='line_subtotal' and not l.recurrence_id))
@@ -720,7 +751,7 @@ class Lead(models.Model):
                     if section.name and line.product_categ_id:
                         name = line_section.name + ' ' + line.product_categ_id.name.title() 
                     line_summary = self.summary_order_line.filtered(lambda x: x.order_sequence==line.order_sequence and x.product_categ_id.id==line.product_categ_id.id )
-                    if not line_summary:
+                    if not line_summary and line_product:
                         ord_val = self.prepare_summary_order_line(name,line_product[0])
                         if ord_val['recurrence_id']!=False:
                             name += ' ' + self.env['sale.temporal.recurrence'].browse(ord_val['recurrence_id']).name + ' Subtotal'

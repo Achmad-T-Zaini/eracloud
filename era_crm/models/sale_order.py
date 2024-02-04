@@ -3,6 +3,7 @@
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError
 from odoo.tools import float_is_zero, float_compare, float_round
+from dateutil.relativedelta import relativedelta
 
 
 class SaleOrder(models.Model):
@@ -81,6 +82,69 @@ class SaleOrder(models.Model):
                         sol_update.write({'price_unit': line_subtotal,})
 
 
+
+    def _get_invoiceable_lines(self, final=False):
+        date_from = fields.Date.today()
+        res = super()._get_invoiceable_lines(final=final)
+        res = res.filtered(lambda l: l.temporal_type != 'subscription' or l.order_id.subscription_management == 'upsell')
+        automatic_invoice = self.env.context.get('recurring_automatic')
+
+        invoiceable_line_ids = []
+        downpayment_line_ids = []
+        pending_section = None
+
+        for line in self.order_line:
+            if line.display_type == 'line_section':
+                # Only add section if one of its lines is invoiceable
+                pending_section = line
+                continue
+
+            time_condition = line.order_id.next_invoice_date and line.order_id.next_invoice_date <= date_from and line.order_id.start_date and line.order_id.start_date <= date_from
+            line_condition = time_condition or not automatic_invoice # automatic mode force the invoice when line are not null
+            line_to_invoice = False
+            if line in res:
+                # Line was already marked as to be invoiced
+                line_to_invoice = True
+            elif line.order_id.subscription_management == 'upsell':
+                # Super() already select everything that is needed for upsells
+                line_to_invoice = False
+            elif line.display_type or line.temporal_type != 'subscription':
+                # Avoid invoicing section/notes or lines starting in the future or not starting at all
+                line_to_invoice = False
+            elif line_condition and line.product_id.invoice_policy == 'order' and line.order_id.state == 'sale':
+                # Invoice due lines
+                line_to_invoice = True
+            elif line_condition and line.product_id.invoice_policy == 'delivery' and (not float_is_zero(line.qty_delivered, precision_rounding=line.product_id.uom_id.rounding)):
+                line_to_invoice = True
+
+            if line_to_invoice:
+                if line.is_downpayment:
+                    # downpayment line must be kept at the end in its dedicated section
+                    downpayment_line_ids.append(line.id)
+                    continue
+                if pending_section:
+                    invoiceable_line_ids.append(pending_section.id)
+                    pending_section = False
+                invoiceable_line_ids.append(line.id)
+
+        return self.env["sale.order.line"].browse(invoiceable_line_ids + downpayment_line_ids)
+
+    @api.depends('is_subscription', 'state', 'start_date', 'subscription_management','order_line', 'order_line.invoice_lines')
+    def _compute_next_invoice_date(self):
+        for so in self:
+            last_invoice = False
+            if so.order_line.invoice_lines:
+                last_invoice = so.order_line.invoice_lines.filtered(lambda l: l.move_id.state!='cancel').sorted(key='date', reverse=True)[0]
+            if not so.is_subscription and not so.subscription_management == 'upsell':
+                so.next_invoice_date = False
+                continue
+            elif not last_invoice:
+                so.next_invoice_date = so.start_date or fields.Date.today()
+            elif not so.next_invoice_date and so.state == 'sale':
+                # Define a default next invoice date.
+                # It is increased manually by _update_next_invoice_date when necessary
+                so.next_invoice_date = so.start_date or fields.Date.today()
+
 class SaleOrderLine(models.Model):
     _inherit = 'sale.order.line'
     _order = 'order_id, order_sequence, sequence, product_categ_id, id'
@@ -130,14 +194,29 @@ class SaleOrderLine(models.Model):
 
     mrp_order_id = fields.Many2one('sale.order', string='MRP Order', readonly=True)
     manufacture_id = fields.Many2one('mrp.production', string='Manufacture Order', readonly=True)
-    manufacture_state = fields.Selection([
-        ('draft', 'Draft'),
-        ('confirmed', 'Confirmed'),
-        ('progress', 'In Progress'),
-        ('to_close', 'To Close'),
-        ('done', 'Done'),
-        ('cancel', 'Cancelled')], string='State',
-        related='manufacture_id.state', copy=False, index=True, readonly=True,)
+    manufacture_state = fields.Char(string="Status", related="manufacture_id.workorder_status")
+    next_invoice_date = fields.Date(
+        string='Date of Next Invoice',
+        compute='_compute_next_invoice_date',
+        store=True, copy=False, tracking=True,
+        readonly=False,
+        help="The next invoice will be created on this date then the period will be extended.")
+
+    @api.depends('recurrence_id','order_id', 'order_id.next_invoice_date','order_id.invoice_ids')
+    def _compute_next_invoice_date(self):
+        for sol in self:
+            last_invoice = False
+            if sol.order_id.invoice_ids and sol.invoice_lines:
+                last_invoice = sol.invoice_lines.filtered(lambda l: l.move_id.state!='cancel').sorted(key='date', reverse=True)[0]
+            if sol.recurrence_id:
+                if sol.recurrence_id.unit=='year' and last_invoice:
+                    sol.next_invoice_date = last_invoice.date + relativedelta(years=1*sol.recurrence_id.duration) or sol.order_id.next_invoice_date
+#                elif sol.recurrence_id.unit=='month':
+#                    sol.next_invoice_date = sol.order_id.start_date + relativedelta(months=1*sol.recurrence_id.duration)
+                else:
+                    sol.next_invoice_date = last_invoice.date + relativedelta(months=sol.recurrence_id.duration) if last_invoice else sol.order_id.next_invoice_date
+            else:
+                sol.next_invoice_date = False
 
     @api.onchange('display_type','product_id')
     def _onchange_display_type_era(self):

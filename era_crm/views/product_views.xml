@@ -22,6 +22,17 @@
         </field>
     </record>
 
+    <record id="mrp_production_form_view_era" model="ir.ui.view">
+        <field name="name">mrp.production.form.era</field>
+        <field name="model">mrp.production</field>
+        <field name="inherit_id" ref="mrp.mrp_production_form_view"/>
+        <field name="arch" type="xml">
+            <field name="company_id" position="after">
+                <field name="workorder_status" invisible="1" />
+            </field>
+        </field>
+    </record>
+
     <record id="res_config_settings_era_crm_view_form" model="ir.ui.view">
         <field name="name">res.config.settings.view.form.inherit.era_crm</field>
         <field name="model">res.config.settings</field>
