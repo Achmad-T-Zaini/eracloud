@@ -83,28 +83,29 @@ class SaleOrder(models.Model):
                     if sol_update:
                         sol_update.write({'price_unit': line_subtotal,})
 
+    @api.onchange('next_invoice_date')
+    def _onchange_next_invoice_date_era(self):
+        last_invoice_date = False
+        next_invoice_date = False
+        if self.invoice_ids:
+            last_invoice_date = self.invoice_ids.filtered(lambda l: l.state=='posted').sorted(key='invoice_date', reverse=True)
 
-    @api.depends('is_subscription', 'state', 'start_date', 'subscription_management','invoice_count')
-    def _compute_next_invoice_date(self):
-        for so in self:
-            last_invoice = False
-            if so.order_line.invoice_lines:
-                last_invoice = so.order_line.invoice_lines.filtered(lambda l: l.move_id.state!='cancel').sorted(key='date', reverse=True)[0]
-            if not so.is_subscription and not so.subscription_management == 'upsell':
-                so.next_invoice_date = False
-                continue
-            elif not so.next_invoice_date and so.state == 'sale':
-                # Define a default next invoice date.
-                # It is increased manually by _update_next_invoice_date when necessary
-                so.next_invoice_date = so.start_date or fields.Date.today()
-
-            if len(so.invoice_ids)==0:
-                so.next_invoice_date = so.start_date or fields.Date.today()
-#            raise UserError(_('cek %s = %s')%(len(so.invoice_ids),so.invoice_count))
+        if not last_invoice_date and not next_invoice_date:
+            self.next_invoice_date = self.start_date
+        else:
+            raise UserError(_('cek %s = %s')%(last_invoice_date,next_invoice_date))
 
     def _get_invoiceable_lines(self, final=False):
         res = super()._get_invoiceable_lines(final=final)
-        return res.filtered(lambda l: l.price_unit>0)
+        invoiceable_line_ids = []
+        for line in res:
+            if line.next_invoice_date and line.next_invoice_date<fields.Date.today() and line.recurrence_id.unit=='year':
+                invoiceable_line_ids.append(line.id)
+            elif line.recurrence_id and line.recurrence_id.unit!='year' and line.price_unit>0:
+                invoiceable_line_ids.append(line.id)
+            elif not line.recurrence_id and line.qty_invoiced==0 and line.price_unit>0:
+                invoiceable_line_ids.append(line.id)
+        return self.env["sale.order.line"].browse(invoiceable_line_ids)
     
 
 class SaleOrderLine(models.Model):
@@ -169,14 +170,10 @@ class SaleOrderLine(models.Model):
         for sol in self:
             last_invoice = False
             if sol.order_id.invoice_ids and sol.invoice_lines:
-                last_invoice = sol.invoice_lines.filtered(lambda l: l.move_id.state!='cancel').sorted(key='date', reverse=True)[0]
+                last_invoice = sol.invoice_lines.filtered(lambda l: l.move_id.state=='posted').sorted(key='date', reverse=True)
             if sol.recurrence_id:
-                if sol.recurrence_id.unit=='year' and last_invoice:
-                    sol.next_invoice_date = last_invoice.date + relativedelta(years=1*sol.recurrence_id.duration) or sol.order_id.next_invoice_date
-#                elif sol.recurrence_id.unit=='month':
-#                    sol.next_invoice_date = sol.order_id.start_date + relativedelta(months=1*sol.recurrence_id.duration)
-                else:
-                    sol.next_invoice_date = last_invoice.date + relativedelta(months=sol.recurrence_id.duration) if last_invoice else sol.order_id.next_invoice_date
+                if sol.recurrence_id.unit=='month' and last_invoice:
+                    sol.next_invoice_date = sol.order_id.next_invoice_date
             else:
                 sol.next_invoice_date = False
 
@@ -330,10 +327,16 @@ class SaleOrderLine(models.Model):
             res['name'] = res['name'][:-10] + subscription_end_date.strftime('%m/%d/%Y')
             res['price_unit'] = (self.price_unit / num_days) * (num_days - self.order_id.date_order.day)
             res['subscription_end_date']=subscription_end_date.date()
+            self.next_invoice_date = subscription_end_date.date() + relativedelta(days=1)
         elif self.recurrence_id.unit=='year' and self.order_id.date_order.date()==self.order_id.next_invoice_date:
             subscription_end_date = datetime(year=self.order_id.date_order.year+1, month=self.order_id.date_order.month,day=self.order_id.date_order.day) - relativedelta(days=1)
             res['name'] = res['name'].replace('month','year')[:-10] + subscription_end_date.strftime('%m/%d/%Y')
-#            res['subscription_end_date']=subscription_end_date.date()
+            res['subscription_end_date']=subscription_end_date.date()
+            self.next_invoice_date = subscription_end_date.date() + relativedelta(days=1)
+        elif self.recurrence_id.unit=='month' and self.next_invoice_date==self.order_id.next_invoice_date:
+            subscription_end_date = datetime(year=self.next_invoice_date.year, month=self.next_invoice_date.month+1,day=1) - relativedelta(days=1)
+            res['subscription_end_date']=subscription_end_date.date()
+            self.next_invoice_date = subscription_end_date.date() + relativedelta(days=1)
 #        raise UserError(_('vals %s')%(res))
             
         return res

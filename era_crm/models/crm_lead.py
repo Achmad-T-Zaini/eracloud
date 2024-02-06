@@ -495,7 +495,9 @@ class Lead(models.Model):
                 line.lead_id._update_subtotal(line)
         else:
             for line in order_line:
-                order_sequence = self.order_id.order_line.sorted(key='order_sequence', reverse=True)[0].order_sequence+1
+                order_sequence=1
+                if self.order_id:
+                    order_sequence = self.order_id.order_line.sorted(key='order_sequence', reverse=True)[0].order_sequence+1
                 if (not line.order_sequence or line.order_sequence==0) and line.display_type=='line_section':
                     line.order_sequence = order_sequence+1
                 elif (not line.order_sequence or line.order_sequence==0) and line.product_id:
