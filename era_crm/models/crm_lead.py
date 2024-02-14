@@ -121,7 +121,7 @@ class Lead(models.Model):
         store=True, precompute=True)
     max_disc = fields.Float(string="Max Disc (%)",
         compute='_compute_expected_revenue',
-        store=True, precompute=True)
+        store=False, precompute=True)
     total_disc = fields.Float(string="Total Disc (%)",
         compute='_compute_expected_revenue',
         store=True, precompute=True)
@@ -148,7 +148,8 @@ class Lead(models.Model):
                    ("approved", "Approved")], default="pending", compute="compute_review_status")
     approver = fields.Char(string='Approver', compute="compute_review_status")
     revision_bool = fields.Boolean(string="Revision Bool", compute="compute_revision_button")
-    
+#    is_need_validation = fields.Boolean(string='is Need Validation', compute="_compute_tier_validation", copy=False)
+
     ##### PRESALE
     presale_id = fields.Many2one('era.presale', string="Presale")
 
@@ -175,6 +176,17 @@ class Lead(models.Model):
     ####### Supporting Document #####
     po_data = fields.Binary(string="Purchase Order")
     po_filename = fields.Char(string="Purchase Order")
+
+    @api.onchange('max_disc')
+    def _onchange_max_disc(self):
+        if self.max_disc>0:
+            tiers = self.env["tier.definition"].search([("model", "=", self._name)])
+            valid_tiers = any([self.evaluate_tier(tier) for tier in tiers])
+            self.need_validation = (
+                not self.review_ids
+                and valid_tiers
+                and getattr(self, self._state_field) in self._state_from
+            )
 
 
     @api.depends('review_ids')
@@ -240,7 +252,7 @@ class Lead(models.Model):
             leads.write({'stage_id': won_stage_id.id, 'probability': 100, 'is_won': True})
         return True
 
-
+       
     @api.onchange('order_id')
     def _onchange_order_id(self):
         if not self.order_id:
@@ -411,9 +423,12 @@ class Lead(models.Model):
 
     @api.onchange('order_id', 'order_id.order_line', 'order_id.order_line.product_id','order_id.order_line.product_uom_qty','order_id.order_line.price_unit','order_id.order_line.discount',
             'order_line','order_line.product_uom_qty','order_line.price_unit','order_line.discount','order_line.product_id','expected_revenue', 'order_id.amount_total',
-            'order_line.crm_price_unit','order_id.order_line.crm_price_unit',)        
+            'order_line.crm_price_unit','order_id.order_line.crm_price_unit')        
     def _onchange_order_line(self):
         if self.order_id:
+#            self.max_disc = 0
+#            if self.order_id.order_line:
+#                self.max_disc = self.order_id.order_line.sorted(key='discount', reverse=True)[0].discount
             line_section = self.order_line.filtered(lambda x: x.display_type=='line_section')
             if line_section:
                 to_remove = []
@@ -442,8 +457,19 @@ class Lead(models.Model):
         for subtotal in subtotals:
             line_product = self.order_line.filtered(lambda x: x.order_sequence==subtotal.order_sequence and x.product_categ_id.id==subtotal.product_categ_id.id and x.product_id)
             line_summarys = self.summary_order_line.filtered(lambda x: x.order_sequence==subtotal.order_sequence and x.product_categ_id.id==subtotal.product_categ_id.id )
+            section_name = self.order_line.filtered(lambda x: x.display_type=='line_section' and x.order_sequence==subtotal.order_sequence)
+            if section_name and line_product:
+#                raise UserError(_('cek %s = %s')%(subtotal.recurrence_id))
+                name = section_name.name + ' ' + subtotal.product_categ_id.name.capitalize() 
+                if subtotal.recurrence_id:
+                    name += ' ' + subtotal.recurrence_id.name
+                else:
+                    name = subtotal.name
+            else:
+                name = subtotal.name
             for line_summary in line_summarys:
                 subtotal.update({'discount': line_summary.price_discount*100,
+                                 'name': name,
                                  'price_unit': sum(lp.crm_price_subtotal for lp in line_product),
                                  'crm_price_unit': sum(lp.crm_price_subtotal for lp in line_product),})
 
@@ -465,7 +491,7 @@ class Lead(models.Model):
                                 if not product_categ_id:
                                     product_categ_id = lp.product_id.categ_id
 
-                                name = line.name + ' ' + lp.product_id.categ_id.name.capitalize()
+                                name = new_subtotal.name + ' ' + lp.product_id.categ_id.name.capitalize()
                                 if lp.product_id.recurring_invoice:
                                     name += ' ' + lp.product_id.product_pricing_ids[0].recurrence_id.name
 
@@ -649,9 +675,9 @@ class Lead(models.Model):
             order._calculate_subtotal()
             total_monthly = total_discount = total_tax = 0
             order.total_disc =0
-            order.max_disc = 0
-            if order.order_id and order.order_id.order_line:
-                order.max_disc = order.order_id.order_line.sorted(key='discount', reverse=True)[0].discount
+            max_disc = 0
+            if order.order_id and order.order_line:
+                max_disc = order.order_line.sorted(key='discount', reverse=True)[0].discount
             total_monthly = sum(line.crm_price_subtotal for line in order.order_line.filtered(lambda l: l.display_type=='line_subtotal' and l.recurrence_id.unit=='month'))
             total_yearly = sum(line.crm_price_subtotal  for line in order.order_line.filtered(lambda l: l.display_type=='line_subtotal' and l.recurrence_id.unit=='year'))
             total_onetime = sum(line.crm_price_subtotal for line in order.order_line.filtered(lambda l: l.display_type=='line_subtotal' and not l.recurrence_id))
@@ -681,6 +707,7 @@ class Lead(models.Model):
 #                          'total_contract': amount_untaxed,
                           'total_contract_discount': total_discount,
 #                          'total_disc': total_disc,
+                          'max_disc': max_disc,
                           'total_discount': total_discount,
                           'grand_total_contract': total_contract + order.total_tax})
 #            order.order_id.update({'amount_total': expected_revenue,})
@@ -772,9 +799,9 @@ class Lead(models.Model):
                         sum_ord_line = self.env['crm.order.summary'].create(ord_val)
                         self._calculate_subtotal()
                 if summ_vals:
-                    summ_vals.update({'price_unit': sum(lp.crm_price_subtotal for lp in line_product),})
+                    summ_vals.update({'name': name, 'price_unit': sum(lp.crm_price_subtotal for lp in line_product),})
                 else:
-                    summ_vals = {'price_unit': sum(lp.crm_price_subtotal for lp in line_product),}
+                    summ_vals = {'name': name, 'price_unit': sum(lp.crm_price_subtotal for lp in line_product),}
                 line_summary.update(summ_vals)
             ord_summ = self.env['crm.order.summary'].search([('order_sequence','not in',ord_seq),('lead_id','=',self.id)])
             ord_summ.unlink()
