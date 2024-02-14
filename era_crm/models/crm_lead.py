@@ -121,7 +121,7 @@ class Lead(models.Model):
         store=True, precompute=True)
     max_disc = fields.Float(string="Max Disc (%)",
         compute='_compute_expected_revenue',
-        store=False, precompute=True)
+        store=True, precompute=True)
     total_disc = fields.Float(string="Total Disc (%)",
         compute='_compute_expected_revenue',
         store=True, precompute=True)
