@@ -458,20 +458,21 @@ class Lead(models.Model):
             line_product = self.order_line.filtered(lambda x: x.order_sequence==subtotal.order_sequence and x.product_categ_id.id==subtotal.product_categ_id.id and x.product_id)
             line_summarys = self.summary_order_line.filtered(lambda x: x.order_sequence==subtotal.order_sequence and x.product_categ_id.id==subtotal.product_categ_id.id )
             section_name = self.order_line.filtered(lambda x: x.display_type=='line_section' and x.order_sequence==subtotal.order_sequence)
-            if section_name and line_product:
+            for section in section_name:
+                if line_product and subtotals.product_categ_id==line_product[0].product_categ_id:
 #                raise UserError(_('cek %s = %s')%(subtotal.recurrence_id))
-                name = section_name.name + ' ' + subtotal.product_categ_id.name.capitalize() 
-                if subtotal.recurrence_id:
-                    name += ' ' + subtotal.recurrence_id.name
+                    name = section.name + ' ' + subtotal.product_categ_id.name.capitalize() 
+                    if subtotal.recurrence_id:
+                        name += ' ' + subtotal.recurrence_id.name
+                    else:
+                        name = subtotal.name
                 else:
                     name = subtotal.name
-            else:
-                name = subtotal.name
-            for line_summary in line_summarys:
-                subtotal.update({'discount': line_summary.price_discount*100,
-                                 'name': name,
-                                 'price_unit': sum(lp.crm_price_subtotal for lp in line_product),
-                                 'crm_price_unit': sum(lp.crm_price_subtotal for lp in line_product),})
+                for line_summary in line_summarys:
+                    subtotal.update({'discount': line_summary.price_discount*100,
+                                     'name': name,
+                                     'price_unit': sum(lp.crm_price_subtotal for lp in line_product),
+                                     'crm_price_unit': sum(lp.crm_price_subtotal for lp in line_product),})
 
 
     def _calculate_subtotal(self,order_line=False):
@@ -779,6 +780,7 @@ class Lead(models.Model):
             ord_seq = []
             for line in new_subtotal:
                 ord_seq.append(line.order_sequence)
+                name = line.name
                 summ_vals = {}
                 if line.product_uom_qty==0:
                     line.product_uom_qty = 1
