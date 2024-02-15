@@ -793,7 +793,7 @@ class Lead(models.Model):
         order_sequence = 0
         if vals.get('order_line',False):
             order_sequence = 0
-            if self.order_id.order_line:
+            if self.order_id.order_line and self.order_line:
                 order_sequence = self.order_id.order_line.sorted(key='order_sequence', reverse=True)[0].order_sequence 
             ori_order_sequence = order_sequence
             line_section = False
@@ -818,7 +818,7 @@ class Lead(models.Model):
                                     line_section['recurrence_id'] = line[2]['recurrence_id']
             
         res = super().write(vals)
-        if self.order_id and self.order_id.order_line:
+        if self.order_id and self.order_id.order_line and self.order_line:
             sol = self.order_line.filtered(lambda l: l.order_sequence>ori_order_sequence)
             for line in sol:
 #                line.write({'order_sequence': order_sequence,})
