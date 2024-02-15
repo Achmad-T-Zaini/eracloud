@@ -790,9 +790,8 @@ class Lead(models.Model):
                 self.term_condition = term_condition.value_text 
 
     def write(self,vals):
-        order_sequence = 0
+        order_sequence = ori_order_sequence = 0
         if vals.get('order_line',False):
-            order_sequence = 0
             if self.order_id.order_line and self.order_line:
                 order_sequence = self.order_id.order_line.sorted(key='order_sequence', reverse=True)[0].order_sequence 
             ori_order_sequence = order_sequence
