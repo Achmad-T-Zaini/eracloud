@@ -457,7 +457,7 @@ class Lead(models.Model):
         for subtotal in subtotals:
             line_product = self.order_line.filtered(lambda x: x.order_sequence==subtotal.order_sequence and x.product_categ_id.id==subtotal.product_categ_id.id and x.product_id)
             line_summarys = self.summary_order_line.filtered(lambda x: x.order_sequence==subtotal.order_sequence and x.product_categ_id.id==subtotal.product_categ_id.id )
-            section_name = self.order_line.filtered(lambda x: x.display_type=='line_section' and x.order_sequence==subtotal.order_sequence and x.product_categ_id.id==subtotal.product_categ_id.id)
+            section_name = self.order_line.filtered(lambda x: x.display_type=='line_section' and x.order_sequence==subtotal.order_sequence)
             if section_name and line_product:
 #                raise UserError(_('cek %s = %s')%(subtotal.recurrence_id))
                 name = section_name.name + ' ' + subtotal.product_categ_id.name.capitalize() 
