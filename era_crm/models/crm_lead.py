@@ -272,13 +272,44 @@ class Lead(models.Model):
     def action_print_quotation(self):
         if not self.is_won:
             self.order_id.quotation_rev+=1
-        return self.env.ref('era_crm.action_crm_quotation').report_action(self)
+        
+        if self.order_line:
+            return self.env.ref('era_crm.action_crm_quotation').report_action(self)
+        else:
+            raise UserError(_("There's No Order Line, please create ones"))
 
     def action_email_quotation(self):
         if not self.is_won:
             self.order_id.quotation_rev+=1
-        raise UserError(_('email quotation'))
-    
+        """ Opens a wizard to compose an email, with relevant mail template loaded by default """
+        self.ensure_one()
+        self.order_id.order_line._validate_analytic_distribution()
+        lang = self.env.context.get('lang')
+        mail_template = self.order_id._find_mail_template()
+        if mail_template and mail_template.lang:
+            lang = mail_template._render_lang(self.ids)[self.order_id.id]
+        ctx = {
+            'default_model': 'crm.lead',
+            'default_res_id': self.order_id.id,
+            'default_use_template': bool(mail_template),
+            'default_template_id': mail_template.id if mail_template else None,
+            'default_composition_mode': 'comment',
+            'mark_so_as_sent': True,
+            'default_email_layout_xmlid': 'mail.mail_notification_layout_with_responsible_signature',
+            'proforma': self.env.context.get('proforma', False),
+            'force_email': True,
+            'model_description': self.with_context(lang=lang).type_name,
+        }
+        return {
+            'type': 'ir.actions.act_window',
+            'view_mode': 'form',
+            'res_model': 'mail.compose.message',
+            'views': [(False, 'form')],
+            'view_id': False,
+            'target': 'new',
+            'context': ctx,
+        }    
+
     def _prepare_sale_order_line(self,product_id=False,order_line=False):
         return {'name':  product_id.name if product_id else order_line.product_id.name, 
                 'product_uom_qty': 1 if product_id else order_line.product_uom_qty, 
@@ -761,7 +792,7 @@ class Lead(models.Model):
     def write(self,vals):
         order_sequence = 0
         if vals.get('order_line',False):
-            order_sequence = self.order_id.order_line.sorted(key='order_sequence', reverse=True)[0].order_sequence
+            order_sequence = self.order_id.order_line.sorted(key='order_sequence', reverse=True)[0].order_sequence or 0
             ori_order_sequence = order_sequence
             line_section = False
             for line in vals['order_line']:
