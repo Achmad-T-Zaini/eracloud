@@ -287,7 +287,7 @@ class Lead(models.Model):
         lang = self.env.context.get('lang')
         mail_template = self.order_id._find_mail_template()
         if mail_template and mail_template.lang:
-            lang = mail_template._render_lang(self.ids)[self.order_id.id]
+            lang = mail_template._render_lang(self.order_id.ids)[self.order_id.id]
         ctx = {
             'default_model': 'crm.lead',
             'default_res_id': self.order_id.id,
@@ -298,7 +298,7 @@ class Lead(models.Model):
             'default_email_layout_xmlid': 'mail.mail_notification_layout_with_responsible_signature',
             'proforma': self.env.context.get('proforma', False),
             'force_email': True,
-            'model_description': self.with_context(lang=lang).type_name,
+            'model_description': self.order_id.with_context(lang=lang).type_name,
         }
         return {
             'type': 'ir.actions.act_window',
