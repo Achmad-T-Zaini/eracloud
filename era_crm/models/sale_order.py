@@ -180,24 +180,24 @@ class SaleOrderLine(models.Model):
     @api.onchange('display_type','product_id')
     def _onchange_display_type_era(self):
         if self.display_type=='line_section' and not self.order_sequence:
-            order_sequence = 0
-            if self.order_id.order_line:
-                order_sequence = self.order_id.order_line.sorted(key='order_sequence', reverse=True)[0].order_sequence
-            self.order_sequence = order_sequence+1
+            self.order_sequence = False
+#            if self.order_id.order_line:
+#                order_sequence = self.order_id.order_line.sorted(key='order_sequence', reverse=True)[0].order_sequence
+#            self.order_sequence= order_sequence+1
         elif self.product_id and not self.order_sequence:
+            self.order_sequence = False
             self.product_categ_id = self.product_id.categ_id.id
 
     @api.onchange('sequence')
     def _onchange_sequence(self):
-        if self.sequence and self.product_id:
+        if self.sequence and self.product_id and self.display_type!='line_section':
             line_subtotal = self.order_id.order_line.filtered(lambda l: l.display_type=='line_subtotal' and l.sequence>=self.sequence)
             if line_subtotal:
                 line_section = self.order_id.order_line.filtered(lambda l: l.display_type=='line_section' and l.order_sequence==line_subtotal[0].order_sequence)
                 if line_section:
-                    self.order_sequence = line_section[0].order_sequence
                     if not self.product_categ_id and self.product_id.categ_id:
                         self.product_categ_id = self.product_id.categ_id.id
-#                raise UserError(_('new %s = %s')%(line_section[0].sequence,self.sequence))
+#            raise UserError(_('new %s = %s')%(self.sequence,self.order_sequence))
 
     def _convert_to_tax_base_line_dict_crm(self):
         """ Convert the current record to a dictionary in order to use the generic taxes computation method
