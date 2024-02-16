@@ -285,11 +285,12 @@ class Lead(models.Model):
         self.ensure_one()
         self.order_id.order_line._validate_analytic_distribution()
         lang = self.env.context.get('lang')
-        mail_template = self.order_id._find_mail_template()
+#        mail_template = self.order_id._find_mail_template()
+        mail_template = self.env.ref('era_crm.email_template_era_crm', raise_if_not_found=False)
         if mail_template and mail_template.lang:
             lang = mail_template._render_lang(self.order_id.ids)[self.order_id.id]
         ctx = {
-            'default_model': 'crm.lead',
+            'default_model': 'sale.order',
             'default_res_id': self.order_id.id,
             'default_use_template': bool(mail_template),
             'default_template_id': mail_template.id if mail_template else None,
@@ -665,6 +666,10 @@ class Lead(models.Model):
                                             'product_uom_qty': 1, 'price_unit': subtotal,'crm_price_unit': subtotal,'sequence': sequence, 'order_type': order_type,
                                             'display_type': 'line_subtotal','order_sequence': order_sequence,  'product_categ_id': product_categ_id.id,
                                             'recurrence_id': self.order_template_id.recurrence_id.id}))
+                    summary_order_line.append((0,0,{ 'name': name, 
+                                            'product_uom_qty': 1, 'price_unit': subtotal, 'order_type': order_type,
+                                            'order_sequence': order_sequence,  'product_categ_id': product_categ_id.id,
+                                            'recurrence_id': self.order_template_id.recurrence_id.id}))
                     product_categ_id = line.product_id.categ_id
                     name = self.order_template_id.product_tmpl_id.name + ' ' + product_categ_id.name.capitalize()
                     subtotal = 0
@@ -674,6 +679,10 @@ class Lead(models.Model):
             order_line.append((0,0,{ 'name': name + ' Subtotal', 
                                             'product_uom_qty': 1, 'price_unit': subtotal,'crm_price_unit': subtotal,'sequence': sequence, 'order_type': order_type,
                                             'display_type': 'line_subtotal','order_sequence': order_sequence, 'product_categ_id': product_categ_id.id,
+                                            'recurrence_id': self.order_template_id.recurrence_id.id}))
+            summary_order_line.append((0,0,{ 'name': name, 
+                                            'product_uom_qty': 1, 'price_unit': subtotal, 'order_type': order_type,
+                                            'order_sequence': order_sequence,  'product_categ_id': product_categ_id.id,
                                             'recurrence_id': self.order_template_id.recurrence_id.id}))
             self.order_line = order_line
             self.summary_order_line = summary_order_line

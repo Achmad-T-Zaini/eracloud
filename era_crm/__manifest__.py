@@ -14,6 +14,7 @@
         "security/ir.model.access.csv",
         "security/era_crm_security.xml",
         "data/data.xml",
+        "data/mail_template_data.xml",
         "views/crm_views.xml",
         "views/product_views.xml",
         "views/sale_views.xml",

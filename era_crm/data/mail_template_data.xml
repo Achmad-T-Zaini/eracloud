@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data noupdate="1">
-        <record id="email_template_edi_sale" model="mail.template">
+        <record id="email_template_era_crm" model="mail.template">
             <field name="name">Sales: Send Quotation</field>
             <field name="model_id" ref="sale.model_sale_order"/>
             <field name="subject">{{ object.company_id.name }} {{ object.state in ('draft', 'sent') and (ctx.get('proforma') and 'Proforma' or 'Quotation') or 'Order' }} (Ref {{ object.name or 'n/a' }})</field>
@@ -20,14 +20,14 @@
             <t t-if="object.origin">
                 (with reference: <t t-out="object.origin or ''"></t> )
             </t>
-            amounting in <span style="font-weight: bold;"  t-out="format_amount(object.amount_total, object.pricelist_id.currency_id) or ''">$ 10.00</span> is available.
+            amounting in <span style="font-weight: bold;"  t-out="format_amount(object.lead_id.grand_total_contract, object.pricelist_id.currency_id) or ''">$ 10.00</span> is available.
         </t>
         <t t-else="">
             <t t-out="doc_name or ''">quotation</t> <span style="font-weight: bold;" t-out="object.name or ''"></span>
             <t t-if="object.origin">
                 (with reference: <t t-out="object.origin or ''">S00052</t> )
             </t>
-            amounting in <span style="font-weight: bold;" t-out="format_amount(object.amount_total, object.pricelist_id.currency_id) or ''">$ 10.00</span> is ready for review.
+            amounting in <span style="font-weight: bold;" t-out="format_amount(object.lead_id.grand_total_contract, object.pricelist_id.currency_id) or ''">$ 10.00</span> is ready for review.
         </t>
         <br/><br/>
         Do not hesitate to contact us if you have any questions.
@@ -39,7 +39,7 @@
     </p>
 </div>
             </field>
-            <field name="report_template" ref="action_report_saleorder"/>
+            <field name="report_template" ref="era_crm.action_crm_quotation"/>
             <field name="report_name">{{ (object.name or '').replace('/','_') }}</field>
             <field name="lang">{{ object.partner_id.lang }}</field>
             <field name="auto_delete" eval="True"/>
@@ -58,7 +58,7 @@
         Hello,
         <br/><br/>
         <t t-set="transaction" t-value="object.get_portal_last_transaction()"/>
-        Your order <span style="font-weight:bold;" t-out="object.name or ''">S00049</span> amounting in <span style="font-weight:bold;" t-out="format_amount(object.amount_total, object.currency_id) or ''">$ 10.00</span>
+        Your order <span style="font-weight:bold;" t-out="object.name or ''">S00049</span> amounting in <span style="font-weight:bold;" t-out="format_amount(object.lead_id.grand_total_contract, object.currency_id) or ''">$ 10.00</span>
         <t t-if="object.state == 'sale' or (transaction and transaction.state in ('done', 'authorized'))">
             has been confirmed.<br/>
             Thank you for your trust!
@@ -234,7 +234,7 @@
     </div>
 </t>
 </div></field>
-            <field name="report_template" ref="action_report_saleorder"/>
+            <field name="report_template" ref="era_crm.action_crm_quotation"/>
             <field name="report_name">{{ (object.name or '').replace('/','_') }}</field>
             <field name="lang">{{ object.partner_id.lang }}</field>
             <field name="auto_delete" eval="True"/>
