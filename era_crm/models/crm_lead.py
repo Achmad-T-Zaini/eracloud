@@ -679,7 +679,7 @@ class Lead(models.Model):
                                         'product_uom_qty': line.product_qty,
                                         'sequence': sequence, 
                                         'order_sequence': order_sequence,
-                                        'recurrence_id': line.product_id.product_pricing_ids[0].recurrence_id.id or False,
+                                        'recurrence_id': line.product_id.product_pricing_ids[0].recurrence_id.id if line.product_id.product_pricing_ids and line.product_id.product_pricing_ids[0].recurrence_id else False,
                                         'product_categ_id': product_categ_id.id,}))
                 subtotal += line.product_qty * max(line.product_id.list_price,line.product_id.lst_price)
                 sequence+=1
