@@ -570,7 +570,6 @@ class Lead(models.Model):
                     subtotal = self.env['sale.order.line'].create(self.prepare_order_line(name,line,line_product))
                     order_summary = self.env['crm.order.summary'].create(self.prepare_summary_order_line(subtotal))
 
-
     def prepare_order_line(self,name,order_line,line_product):
         crm_price_unit = 0
         for line in line_product:
