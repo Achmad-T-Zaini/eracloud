@@ -528,8 +528,8 @@ class Lead(models.Model):
                                 product_categ_id = lp.product_id.categ_id
 
                             name = line.name + ' ' + lp.product_id.categ_id.name.capitalize()
-                            if lp.product_id.recurring_invoice:
-                                name += ' ' + lp.product_id.product_pricing_ids[0].recurrence_id.name
+#                            if lp.product_id.recurring_invoice:
+#                                name += ' ' + lp.product_id.product_pricing_ids[0].recurrence_id.name
 
                             if product_categ_id!=lp.product_id.categ_id:
                                 vals_subtotal = { 'name':  name + ' Subtotal', 
@@ -565,8 +565,8 @@ class Lead(models.Model):
                     name = line_section.name
                     if line_product:
                         name = line_section.name + ' ' + line_product[0].product_id.categ_id.name.capitalize()
-                    if line_product[0].product_id.recurring_invoice:
-                        name += ' ' + line_product[0].product_id.product_pricing_ids[0].recurrence_id.name
+#                    if line_product[0].product_id.recurring_invoice:
+#                        name += ' ' + line_product[0].product_id.product_pricing_ids[0].recurrence_id.name
                     subtotal = self.env['sale.order.line'].create(self.prepare_order_line(name,line,line_product))
                     order_summary = self.env['crm.order.summary'].create(self.prepare_summary_order_line(subtotal))
 
@@ -579,7 +579,7 @@ class Lead(models.Model):
                                             'product_uom_qty': 1, 
                                             'price_unit': crm_price_unit,
                                             'crm_price_unit': crm_price_unit,
-                                            'sequence': sequence, 
+                                            'sequence': sequence+1, 
                                             'order_type': line_product[0].product_id.detailed_type,
                                             'display_type': 'line_subtotal',
                                             'order_sequence': order_line.order_sequence,  
@@ -602,7 +602,7 @@ class Lead(models.Model):
 
     def get_summary_subtotal(self):
         data = []
-        sum_total = self.summary_order_line.sorted(key=lambda mv: (mv.recurrence_id, mv.product_categ_id,))
+        sum_total = self.order_line.sorted(key=lambda mv: (mv.recurrence_id, mv.product_categ_id,))
         if sum_total:
             total = 0.0
             discount = total_disc = 0.0
@@ -660,8 +660,8 @@ class Lead(models.Model):
                     product_categ_id = line.product_id.categ_id
 
                 name = self.order_template_id.product_tmpl_id.name + ' ' + product_categ_id.name.capitalize()
-                if self.order_template_id.recurrence_id:
-                    name += ' ' + self.order_template_id.recurrence_id.name
+#                if self.order_template_id.recurrence_id:
+#                    name += ' ' + self.order_template_id.recurrence_id.name
 
                 if product_categ_id!=line.product_id.categ_id:
                     order_line.append((0,0,{ 'name': name + ' Subtotal', 
@@ -675,7 +675,12 @@ class Lead(models.Model):
                     product_categ_id = line.product_id.categ_id
                     name = self.order_template_id.product_tmpl_id.name + ' ' + product_categ_id.name.capitalize()
                     subtotal = 0
-                order_line.append((0,0,{ 'product_id': line.product_id.id, 'product_uom_qty': line.product_qty,'sequence': sequence, 'order_sequence': order_sequence,'product_categ_id': product_categ_id.id,}))
+                order_line.append((0,0,{ 'product_id': line.product_id.id, 
+                                        'product_uom_qty': line.product_qty,
+                                        'sequence': sequence, 
+                                        'order_sequence': order_sequence,
+                                        'recurrence_id': line.product_id.product_pricing_ids[0].recurrence_id.id or False,
+                                        'product_categ_id': product_categ_id.id,}))
                 subtotal += line.product_qty * max(line.product_id.list_price,line.product_id.lst_price)
                 sequence+=1
             order_line.append((0,0,{ 'name': name + ' Subtotal', 
@@ -720,12 +725,12 @@ class Lead(models.Model):
             max_disc = 0
             if order.order_id and order.order_line:
                 max_disc = order.order_line.sorted(key='discount', reverse=True)[0].discount
-            total_monthly = sum(line.crm_price_subtotal for line in order.order_line.filtered(lambda l: l.display_type=='line_subtotal' and l.recurrence_id.unit=='month'))
-            total_yearly = sum(line.crm_price_subtotal  for line in order.order_line.filtered(lambda l: l.display_type=='line_subtotal' and l.recurrence_id.unit=='year'))
-            total_onetime = sum(line.crm_price_subtotal for line in order.order_line.filtered(lambda l: l.display_type=='line_subtotal' and not l.recurrence_id))
-            bruto_total_monthly = sum(line.crm_price_unit * line.product_uom_qty  for line in order.order_line.filtered(lambda l: l.display_type=='line_subtotal' and l.recurrence_id.unit=='month'))
-            bruto_total_yearly = sum(line.crm_price_unit * line.product_uom_qty   for line in order.order_line.filtered(lambda l: l.display_type=='line_subtotal' and l.recurrence_id.unit=='year'))
-            bruto_total_onetime = sum(line.crm_price_unit * line.product_uom_qty  for line in order.order_line.filtered(lambda l: l.display_type=='line_subtotal' and not l.recurrence_id))
+            total_monthly = sum(line.crm_price_subtotal for line in order.order_line.filtered(lambda l: l.product_id and l.recurrence_id.unit=='month'))
+            total_yearly = sum(line.crm_price_subtotal  for line in order.order_line.filtered(lambda l: l.product_id and l.recurrence_id.unit=='year'))
+            total_onetime = sum(line.crm_price_subtotal for line in order.order_line.filtered(lambda l: l.product_id and not l.recurrence_id))
+            bruto_total_monthly = sum(line.crm_price_unit * line.product_uom_qty  for line in order.order_line.filtered(lambda l: l.product_id and l.recurrence_id.unit=='month'))
+            bruto_total_yearly = sum(line.crm_price_unit * line.product_uom_qty   for line in order.order_line.filtered(lambda l: l.product_id and l.recurrence_id.unit=='year'))
+            bruto_total_onetime = sum(line.crm_price_unit * line.product_uom_qty  for line in order.order_line.filtered(lambda l: l.product_id and not l.recurrence_id))
 
             total_contract = (total_monthly * order.duration) + total_yearly + total_onetime
             total_contract_bruto = (bruto_total_monthly * order.duration) + bruto_total_yearly + bruto_total_onetime

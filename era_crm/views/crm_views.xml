@@ -267,6 +267,7 @@ style="margin-bottom:0px;">
                                     widget="sol_product_many2one"/>
 
                                 <field name="name" widget="section_and_note_text" optional="show" attrs="{'readonly': [('display_type', '=', 'line_subtotal')],}"/>
+                                <field name="recurrence_id" readonly="1" optional="hide"/>
                                 <field name="analytic_distribution" widget="analytic_distribution"
                                            optional="hide"
                                            groups="analytic.group_analytic_accounting"
@@ -360,7 +361,6 @@ style="margin-bottom:0px;">
                                 <field name="price_tax" invisible="1"/>
                                 <field name="company_id" invisible="1"/>
                                 <field name="tax_country_id" invisible="1"/>
-                                <field name="recurrence_id" invisible="1"/>
                                 <field name="product_categ_id" invisible="1"/>
                             </tree>
                         </field>
