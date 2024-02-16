@@ -491,6 +491,9 @@ class Lead(models.Model):
             line_summarys = self.summary_order_line.filtered(lambda x: x.order_sequence==subtotal.order_sequence and x.product_categ_id.id==subtotal.product_categ_id.id )
             section_name = self.order_line.filtered(lambda x: x.display_type=='line_section' and x.order_sequence==subtotal.order_sequence)
             for section in section_name:
+                if not section.recurrence_id and subtotal.recurrence_id:
+                    section.recurrence_id = subtotal.recurrence_id.id
+                    line_summarys.recurrence_id = section.recurrence_id
                 if line_product and subtotals.product_categ_id==line_product[0].product_categ_id:
                     name = section.name + ' ' + subtotal.product_categ_id.name.capitalize() 
                     if subtotal.recurrence_id:
@@ -584,7 +587,7 @@ class Lead(models.Model):
                                             'product_categ_id': line_product[0].product_id.categ_id.id,
                                             'lead_id': self.id,
                                             'order_id': self.order_id.id,
-                                            'recurrence_id': line_product[0].product_id.product_pricing_ids[0].recurrence_id.id if order_line.product_id.recurring_invoice else False,
+                                            'recurrence_id': line_product[0].product_id.product_pricing_ids[0].recurrence_id.id if line_product[0].product_id.recurring_invoice else False,
                                             }
 
     def prepare_summary_order_line(self,subtotal):
