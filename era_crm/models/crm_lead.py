@@ -458,9 +458,6 @@ class Lead(models.Model):
             'order_line.crm_price_unit','order_id.order_line.crm_price_unit')        
     def _onchange_order_line(self):
         if self.order_id:
-#            self.max_disc = 0
-#            if self.order_id.order_line:
-#                self.max_disc = self.order_id.order_line.sorted(key='discount', reverse=True)[0].discount
             line_section = self.order_line.filtered(lambda x: x.display_type=='line_section')
             if line_section:
                 to_remove = []
@@ -470,7 +467,7 @@ class Lead(models.Model):
             elif not line_section:
                 self.summary_order_line = [(6,0,[])]
                 self.order_line = [(6,0,[])]
-                    
+        
             line_subtotal = self.order_line.filtered(lambda x: x.display_type=='line_subtotal')
             for section in line_subtotal:
                 section.crm_price_unit = 0
@@ -485,27 +482,32 @@ class Lead(models.Model):
                     if sol_update:
                         sol_update.update({'price_unit': line_subtotal,'crm_price_unit': line_subtotal,})
 
+
     def _update_subtotal(self,subtotals):
         for subtotal in subtotals:
-            line_product = self.order_line.filtered(lambda x: x.order_sequence==subtotal.order_sequence and x.product_categ_id.id==subtotal.product_categ_id.id and x.product_id)
+            cek_subtotal = self.order_line.filtered(lambda x: x.display_type=='line_subtotal' and x.order_sequence==subtotal.order_sequence)
+            if len(cek_subtotal)>1:
+                line_product = self.order_line.filtered(lambda x: x.order_sequence==subtotal.order_sequence and x.product_categ_id.id==subtotal.product_categ_id.id and x.product_id)
+            else:
+                line_product = self.order_line.filtered(lambda x: x.order_sequence==subtotal.order_sequence and x.product_id)
             line_summarys = self.summary_order_line.filtered(lambda x: x.order_sequence==subtotal.order_sequence and x.product_categ_id.id==subtotal.product_categ_id.id )
             section_name = self.order_line.filtered(lambda x: x.display_type=='line_section' and x.order_sequence==subtotal.order_sequence)
             for section in section_name:
                 if not section.recurrence_id and subtotal.recurrence_id:
                     section.recurrence_id = subtotal.recurrence_id.id
                     line_summarys.recurrence_id = section.recurrence_id
-                if line_product and subtotals.product_categ_id==line_product[0].product_categ_id:
-                    name = section.name + ' ' + subtotal.product_categ_id.name.capitalize() 
-                    if subtotal.recurrence_id:
-                        name += ' ' + subtotal.recurrence_id.name
-                    else:
-                        name = subtotal.name
-                else:
-                    name = subtotal.name
-#                for line_summary in line_summarys:
-#            subtotal.update({'name': name,
-#                                     'price_unit': sum(lp.crm_price_subtotal for lp in line_product),
-#                                     'crm_price_unit': sum(lp.crm_price_subtotal for lp in line_product),})
+#                if line_product and subtotals.product_categ_id==line_product[0].product_categ_id:
+#                    name = section.name + ' ' + subtotal.product_categ_id.name.capitalize() 
+#                    if subtotal.recurrence_id:
+#                        name += ' ' + subtotal.recurrence_id.name
+#
+#            name = subtotal.name + ' ' + subtotal.product_categ_id.name.capitalize() 
+#            if subtotal.recurrence_id:
+#                name+= ' ' + subtotal.recurrence_id.name
+#            raise UserError(_('name %s\n%s')%(subtotal.name,name))
+                subtotal.update({
+                                     'price_unit': sum(lp.crm_price_subtotal for lp in line_product),
+                                     'crm_price_unit': sum(lp.crm_price_subtotal for lp in line_product),})
 
 
     def _calculate_subtotal(self,order_line=False):
@@ -820,7 +822,7 @@ class Lead(models.Model):
                             order_sequence +=1
                             line[2]['order_sequence']=order_sequence
                             line_section = line[2]
-                        elif line[2].get('product_id',False)!=False:
+                        if line[2].get('product_id',False)!=False:
                             line[2]['order_sequence']=order_sequence
                             product_id = self.env['product.product'].browse(line[2]['product_id'])
                             if not line_section['order_type']:
@@ -829,8 +831,8 @@ class Lead(models.Model):
                                 line_section['product_categ_id'] = product_id.categ_id.id
                             if line[2].get('recurrence_id',False)==False:
                                 line[2]['recurrence_id'] = product_id.product_pricing_ids[0].recurrence_id.id if product_id.product_pricing_ids else False
-                                if not line_section['recurrence_id']:
-                                    line_section['recurrence_id'] = line[2]['recurrence_id']
+                                if line_section.get('recurrence_id',False):
+                                    line_section.update({'recurrence_id': line[2]['recurrence_id'],})
             
         res = super().write(vals)
         if self.order_id and self.order_id.order_line and self.order_line:
@@ -844,6 +846,10 @@ class Lead(models.Model):
             ord_seq = []
             for line in new_subtotal:
                 ord_seq.append(line.order_sequence)
+                summary_order = self.env['crm.order.summary'].search([('lead_id','=',self.id),('order_sequence', '=',int(line.order_sequence)),('product_categ_id','=',line.product_categ_id.id)])
+#                raise UserError(_('cek %s\n%s = %s = %s')%(summary_order,line.name,line.order_sequence,line.product_categ_id))
+                if summary_order:
+                    summary_order.name = line.name
                 if line.product_uom_qty == 0:
                     line.product_uom_qty = 1
             ord_summ = self.env['crm.order.summary'].search([('order_sequence','not in',ord_seq),('lead_id','=',self.id)])

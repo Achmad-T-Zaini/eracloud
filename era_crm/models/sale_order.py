@@ -177,7 +177,7 @@ class SaleOrderLine(models.Model):
             else:
                 sol.next_invoice_date = False
 
-    @api.onchange('display_type','product_id')
+    @api.onchange('display_type','product_id','name')
     def _onchange_display_type_era(self):
         if self.display_type=='line_section' and not self.order_sequence:
             self.order_sequence = False
@@ -187,6 +187,15 @@ class SaleOrderLine(models.Model):
         elif self.product_id and not self.order_sequence:
             self.order_sequence = False
             self.product_categ_id = self.product_id.categ_id.id
+
+        if self.display_type=='line_section':
+            subtotals = self.order_id.order_line.filtered(lambda x: x.display_type=='line_subtotal' and x.order_sequence==self.order_sequence)
+            for subtotal in subtotals:
+                subtotal.name = self.name + ' ' + subtotal.product_categ_id.name + ' Subtotal'
+                summaries = self.lead_id.summary_order_line.filtered(lambda l: l.order_sequence==self.order_sequence and l.product_categ_id==subtotal.product_categ_id.id)
+                if summaries:
+                    summaries.name = subtotal.name
+
 
     @api.onchange('sequence')
     def _onchange_sequence(self):
