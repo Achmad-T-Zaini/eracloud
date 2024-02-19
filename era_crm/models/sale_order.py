@@ -64,17 +64,9 @@ class SaleOrder(models.Model):
         if self.lead_id:
             line_section = self.order_line.filtered(lambda x: x.display_type=='line_section')
             line_subtotal = self.order_line.filtered(lambda x: x.display_type=='line_subtotal')
-#            if line_section:
-#                to_remove = self.lead_id.summary_order_line.filtered(lambda l: l.order_sequence not in [line_section.order_sequence])
-#                if to_remove:
-#                    self.lead_id.summary_order_line = [(3,to_remove.id)]
-#                    to_remove = self.order_line.filtered(lambda l: l.order_sequence not in [line_section.order_sequence])
-#                    self.order_line = [(3,tr.id) for tr in to_remove]
-#                raise UserError(_('section %s\n%s')%(line_section,to_remove))
 
             for section in line_subtotal:
                 line_product = self.order_line.filtered(lambda x: x.order_sequence==section.order_sequence and x.product_id and x.order_type==section.order_type )
-#                raise UserError(_('line %s')%(line_product))
                 line_subtotal = sum(line.product_uom_qty*line.crm_price_unit for line in line_product) or 0
                 if line_product and line_subtotal>0:
                     pto_update = self.lead_id.summary_order_line.filtered(lambda l: l.order_sequence ==section.order_sequence and l.order_type==section.order_type)
@@ -125,7 +117,7 @@ class SaleOrder(models.Model):
 
 class SaleOrderLine(models.Model):
     _inherit = 'sale.order.line'
-    _order = 'order_id, order_sequence, sequence, product_categ_id, id'
+    _order = 'order_id, order_sequence, sequence, id'
 
     _sql_constraints = [
         ('accountable_required_fields',
@@ -196,9 +188,6 @@ class SaleOrderLine(models.Model):
     def _onchange_display_type_era(self):
         if self.display_type=='line_section' and not self.order_sequence:
             self.order_sequence = False
-#            if self.order_id.order_line:
-#                order_sequence = self.order_id.order_line.sorted(key='order_sequence', reverse=True)[0].order_sequence
-#            self.order_sequence= order_sequence+1
         elif self.product_id and not self.order_sequence:
             self.order_sequence = False
             self.product_categ_id = self.product_id.categ_id.id

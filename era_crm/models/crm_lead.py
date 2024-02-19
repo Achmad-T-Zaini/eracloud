@@ -129,8 +129,6 @@ class Lead(models.Model):
         compute='_compute_expected_revenue',
         store=True, precompute=True)
 
-#    order_template_id = fields.Many2one('crm.template', string='Order Template', domain="[('type','=','product')]")
-
     ###### untuk kebutuhan APPROVAL
     state = fields.Selection(
         selection=[
@@ -148,7 +146,6 @@ class Lead(models.Model):
                    ("approved", "Approved")], default="pending", compute="compute_review_status")
     approver = fields.Char(string='Approver', compute="compute_review_status")
     revision_bool = fields.Boolean(string="Revision Bool", compute="compute_revision_button")
-#    is_need_validation = fields.Boolean(string='is Need Validation', compute="_compute_tier_validation", copy=False)
 
     ##### PRESALE
     presale_id = fields.Many2one('era.presale', string="Presale")
@@ -417,14 +414,14 @@ class Lead(models.Model):
         values = self._prepare_sale_order_values()
         order = self.env['sale.order'].create(values)
         order.order_line._compute_tax_id()
-        order.action_confirm()
-        picking_id = order.picking_ids[0].do_unreserve()
-#        action = self._get_associated_so_action()
-#        action['name'] = _('CRM Order')
-#        action['views'] = [(self.env.ref('sale_subscription.sale_subscription_primary_form_view').id, 'form')]
-#        action['res_id'] = order.id
+#        order.action_confirm()
+#        picking_id = order.picking_ids[0].do_unreserve()
+        action = order._get_associated_so_action()
+        action['name'] = _('CRM Order')
+        action['views'] = [(self.env.ref('sale_subscription.sale_subscription_primary_form_view').id, 'form')]
+        action['res_id'] = order.id
 #        action['context']['create'] = True
-#        return action
+        return action
 
     def _prepare_sale_order_values(self):
         """
@@ -495,11 +492,6 @@ class Lead(models.Model):
     def _update_subtotal(self,subtotals):
         for subtotal in subtotals:
             line_product = self.order_line.filtered(lambda x: x.order_sequence==subtotal.order_sequence and x.product_categ_id.id==subtotal.product_categ_id.id and x.recurrence_id==subtotal.recurrence_id and x.product_id)
-#            section_name = self.order_line.filtered(lambda x: x.display_type=='line_section' and x.order_sequence==subtotal.order_sequence)
-#            for section in section_name:
-#                if not section.recurrence_id and subtotal.recurrence_id:
-#                    section.recurrence_id = subtotal.recurrence_id.id
-#                    line_summarys.recurrence_id = section.recurrence_id
             def_qty = subtotal.product_uom_qty
             if subtotal.product_uom_qty==0:
                 def_qty = 1
@@ -529,7 +521,8 @@ class Lead(models.Model):
                     if new_subtotals:
                         for new_subtotal in new_subtotals:
                             subtotal = self.order_line.filtered(lambda x: x.display_type=='line_subtotal' and x.order_sequence==new_subtotal.order_sequence and x.product_categ_id==new_subtotal.product_categ_id and x.recurrence_id==new_subtotal.recurrence_id)
-                            self._update_subtotal(subtotal)
+                            for subttl in subtotal:
+                                self._update_subtotal(subttl)
                     else:
                         line_product = self.order_line.filtered(lambda x: x.order_sequence==line_section.order_sequence and x.product_id).sorted(key= lambda l: (l.product_categ_id,l.recurrence_id))
 #                        raise UserError(_('cek %s')%(line_product))
@@ -564,6 +557,7 @@ class Lead(models.Model):
         for product in line_product:
             if product.product_id.categ_id != product_categ_id and product.product_id.recurrence_id != recurrence_id:
                 subtotal = self.env['sale.order.line'].create(self.prepare_order_line(name,order_sequence,crm_price_unit,product_categ_id,recurrence_id,product.sequence-1,product.product_id.detailed_type))
+                subtotal.product_uom_qty = 1
                 order_summary = self.env['crm.order.summary'].create(self.prepare_summary_order_line(subtotal))
                 crm_price_unit = product.crm_price_unit*product.product_uom_qty
                 product_categ_id = product.product_id.categ_id
@@ -661,25 +655,6 @@ class Lead(models.Model):
                                     'order_type': 'product', 'product_categ_id': self.order_template_id.product_tmpl_id.categ_id.id}))
             sequence+=1
             for line in self.order_template_id.bom_line_ids.sorted(key= lambda l: (l.product_categ_id,l.recurrence_id)):
-#                if not product_categ_id:
-#                    product_categ_id = line.product_id.categ_id
-
-#                name = self.order_template_id.product_tmpl_id.name + ' ' + product_categ_id.name.capitalize()
-#                if self.order_template_id.recurrence_id:
-#                    name += ' ' + self.order_template_id.recurrence_id.name
-
-#                if product_categ_id!=line.product_id.categ_id:
-#                    order_line.append((0,0,{ 'name': name + ' Subtotal', 
-#                                            'product_uom_qty': 1, 'price_unit': subtotal,'crm_price_unit': subtotal,'sequence': sequence, 'order_type': order_type,
-#                                            'display_type': 'line_subtotal','order_sequence': order_sequence,  'product_categ_id': product_categ_id.id,
-#                                            'recurrence_id': self.order_template_id.recurrence_id.id}))
-#                    summary_order_line.append((0,0,{ 'name': name, 
-#                                            'product_uom_qty': 1, 'price_unit': subtotal, 'order_type': order_type,
-#                                            'order_sequence': order_sequence,  'product_categ_id': product_categ_id.id,
-#                                            'recurrence_id': self.order_template_id.recurrence_id.id}))
-#                    product_categ_id = line.product_id.categ_id
-#                    name = self.order_template_id.product_tmpl_id.name + ' ' + product_categ_id.name.capitalize()
-#                    subtotal = 0
                 product_categ_id = line.product_id.categ_id
                 order_line.append((0,0,{ 'product_id': line.product_id.id, 
                                         'product_uom_qty': line.product_qty,
@@ -689,20 +664,9 @@ class Lead(models.Model):
                                         'product_categ_id': line.product_id.categ_id.id,}))
                 subtotal += line.product_qty * max(line.product_id.list_price,line.product_id.lst_price)
                 sequence+=1
-#            order_line.append((0,0,{ 'name': name + ' Subtotal', 
-#                                            'product_uom_qty': 1, 'price_unit': subtotal,'crm_price_unit': subtotal,'sequence': sequence, 'order_type': order_type,
-#                                            'display_type': 'line_subtotal','order_sequence': order_sequence, 'product_categ_id': product_categ_id.id,
-#                                            'recurrence_id': self.order_template_id.recurrence_id.id}))
-#            summary_order_line.append((0,0,{ 'name': name, 
-#                                            'product_uom_qty': 1, 'price_unit': subtotal, 'order_type': order_type,
-#                                            'order_sequence': order_sequence,  'product_categ_id': product_categ_id.id,
-#                                            'recurrence_id': self.order_template_id.recurrence_id.id}))
             self.order_line = order_line
             self.summary_order_line = summary_order_line
             self.order_template_id = False
-#            new_subtotals = self.order_line.filtered(lambda x: x.display_type=='line_subtotal' and x.order_sequence==order_sequence and x.product_categ_id==product_categ_id)
-#            raise UserError(_('cek %s\n%s\n%s')%(new_subtotals,order_sequence,product_categ_id))
-#            self._calculate_subtotal(new_subtotals)
 
 
     def _convert_to_tax_base_line_dict(self):
@@ -841,11 +805,6 @@ class Lead(models.Model):
                                     line_section.update({'recurrence_id': line[2]['recurrence_id'],})
             
         res = super().write(vals)
-#        if self.order_id and self.order_id.order_line and self.order_line:
-#            sol = self.order_line.filtered(lambda l: l.order_sequence>ori_order_sequence)
-#            for line in sol:
-#                line.write({'order_sequence': order_sequence,})
-#                line.lead_id._calculate_subtotal(line)
 
         new_subtotals = self.order_line.filtered(lambda x: x.display_type=='line_subtotal' and x.order_sequence==order_sequence)
 #        raise UserError(_('ord seq %s == %s\n%s')%(order_sequence,ori_order_sequence,new_subtotals))
@@ -957,9 +916,6 @@ class Lead(models.Model):
 #                'price_tax': amount_tax,
                 'price_total': price_subtotal,
                 })
-#            line_subtotal = self.lead_id.order_line.filtered(lambda x: x.display_type=='line_subtotal' and x.order_sequence==line.order_sequence and x.product_categ_id.id==line.product_categ_id.id)
-#            line_subtotal.write({'discount': price_discount*100, })
-#            line.lead_id._calculate_subtotal()
 
     @api.onchange('product_uom_qty', 'discount', 'price_unit', 'price_subtotal', 'price_total')
     def _onchange_qty_disc_price(self):
