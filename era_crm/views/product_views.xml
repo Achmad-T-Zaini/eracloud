@@ -11,6 +11,17 @@
         </field>
     </record>
 
+    <record id="product_template_only_form_viewera" model="ir.ui.view">
+        <field name="name">product.template.form.era</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_only_form_view"/>
+        <field name="arch" type="xml">
+            <field name="default_code" position="before">
+                <field name="recurrence_id" invisible="1"/>
+            </field>
+        </field>
+    </record>
+
     <record id="mrp_bom_form_view_era" model="ir.ui.view">
         <field name="name">mrp.bom.form.era</field>
         <field name="model">mrp.bom</field>
@@ -19,6 +30,11 @@
             <xpath expr="//form/sheet/group/group[1]" position="inside">
                 <field name="recurrence_id" options="{ 'no_create': True}"/>
             </xpath>
+            <xpath expr="//field[@name='bom_line_ids']/tree" position="inside">
+                <field name="product_categ_id" invisible="1" />
+                <field name="recurrence_id" invisible="1" />
+            </xpath>
+
         </field>
     </record>
 

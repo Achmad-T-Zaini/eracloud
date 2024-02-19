@@ -33,3 +33,16 @@ class MrpWorkorder(models.Model):
         for line in self:
             line.production_id.update({'workorder_status': line.name + ' ' + dict(line._fields['state'].selection).get(line.state)})
         return res
+
+class MrpBom(models.Model):
+    """ Defines bills of material for a product or a product template """
+    _inherit = 'mrp.bom'
+
+    recurrence_id = fields.Many2one('sale.temporal.recurrence', string='Recurrence', ondelete='restrict', readonly=False, store=True)
+
+
+class MrpBomLine(models.Model):
+    _inherit = 'mrp.bom.line'
+
+    recurrence_id = fields.Many2one('sale.temporal.recurrence', string='Recurrence', related="product_tmpl_id.recurrence_id")
+    product_categ_id = fields.Many2one('product.category',string='Product Category', related="product_tmpl_id.categ_id")

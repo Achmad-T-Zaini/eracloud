@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from odoo import fields, models, _
+from odoo import api, fields, models, _
 from odoo.exceptions import UserError
 
 class ResConfigSettings(models.TransientModel):
@@ -35,6 +35,15 @@ class ProductProduct(models.Model):
 class ProductTemplate(models.Model):
     _inherit = 'product.template'
 
+    recurrence_id = fields.Many2one('sale.temporal.recurrence', string='Recurrence', ondelete='restrict', readonly=False, store=True, compute="_get_recurrence_default")
+
+    @api.depends('product_pricing_ids', 'product_pricing_ids.recurrence_id')
+    def _get_recurrence_default(self):
+        for rec in self:
+            rec.recurrence_id = False
+            if rec.recurring_invoice and rec.product_pricing_ids and rec.product_pricing_ids[0].recurrence_id.id:
+                rec.update({'recurrence_id': rec.product_pricing_ids[0].recurrence_id.id,})
+
     def _onchange_recurring_invoice(self):
         """
         Raise a warning if the user has checked 'Subscription Product'
@@ -55,11 +64,4 @@ class ProductTemplate(models.Model):
                 'title': _("Warning"),
                 'message': _("You can not change the recurring property of this product because it has been sold already as a subscription.")
             }}
-
-class MrpBom(models.Model):
-    """ Defines bills of material for a product or a product template """
-    _inherit = 'mrp.bom'
-
-    recurrence_id = fields.Many2one('sale.temporal.recurrence', string='Recurrence', ondelete='restrict', readonly=False, store=True)
-
 

@@ -47,12 +47,13 @@ class SaleOrder(models.Model):
         res = super().action_confirm()
         mto = self.order_line.filtered(lambda l: l.product_id.bom_count>0)
         if mto:
+            picking_id = self.picking_ids[0].do_unreserve()
             for line in mto:
                 manufacture_order = self.env['mrp.production'].create({
                             'product_id': mto[0].product_id.id,
                         })
                 manufacture_order.action_confirm()
-                line.write({ 'manufacture_id': manufacture_order.id, 'mrp_order_id': line.order_id.id,})
+                line.write({ 'manufacture_id': manufacture_order.id, 'mrp_order_id': line.order_id.id, 'manufacture_state': manufacture_order.state})
 
         return res
 
@@ -96,17 +97,31 @@ class SaleOrder(models.Model):
             raise UserError(_('cek %s = %s')%(last_invoice_date,next_invoice_date))
 
     def _get_invoiceable_lines(self, final=False):
+        if self.delivery_status=='pending':
+            raise UserError(_('Product has not Delivered Yet'))
         res = super()._get_invoiceable_lines(final=final)
         invoiceable_line_ids = []
         for line in res:
-            if line.next_invoice_date and line.next_invoice_date<fields.Date.today() and line.recurrence_id.unit=='year':
-                invoiceable_line_ids.append(line.id)
-            elif line.recurrence_id and line.recurrence_id.unit!='year' and line.price_unit>0:
+            if line.invoice_status == 'to invoice' and line.recurrence_id and line.next_invoice_date<=fields.Date.today() and line.price_unit>0:
                 invoiceable_line_ids.append(line.id)
             elif not line.recurrence_id and line.qty_invoiced==0 and line.price_unit>0:
                 invoiceable_line_ids.append(line.id)
         return self.env["sale.order.line"].browse(invoiceable_line_ids)
     
+    def _get_invoiced(self):
+        # The invoice_ids are obtained thanks to the invoice lines of the SO
+        # lines, and we also search for possible refunds created directly from
+        # existing invoices. This is necessary since such a refund is not
+        # directly linked to the SO.
+        for order in self:
+            invoices = order.order_line.invoice_lines.move_id.filtered(lambda r: r.move_type in ('out_invoice', 'out_refund'))
+            order.invoice_ids = invoices
+            order.invoice_count = len(invoices)
+
+            if order.invoice_count == 0 and order.recurrence_id:
+                order.next_invoice_date = order.date_order.date()
+                for line in order.order_line.filtered(lambda l: l.recurrence_id):
+                    line.next_invoice_date =  order.date_order.date()
 
 class SaleOrderLine(models.Model):
     _inherit = 'sale.order.line'
@@ -195,6 +210,9 @@ class SaleOrderLine(models.Model):
                 summaries = self.lead_id.summary_order_line.filtered(lambda l: l.order_sequence==self.order_sequence and l.product_categ_id==subtotal.product_categ_id.id)
                 if summaries:
                     summaries.name = subtotal.name
+
+        if self.display_type=='line_subtotal' and (self.product_uom_qty==0 or not self.product_uom_qty):
+            self.product_uom_qty = 1
 
 
     @api.onchange('sequence')
@@ -309,6 +327,10 @@ class SaleOrderLine(models.Model):
         if vals.get('product_categ_id',False) and vals.get('product_id',False):
             product_id = self.env['product.product'].browse(vals['product_id'])
             vals.update({'product_categ_id': product_id.categ_id.id,})
+
+        if (vals.get('product_uom_qty',False)==False or vals.get('product_uom_qty',False)==0 ) and vals.get('display_type',False)=='line_subtotal':
+            vals.update({'product_uom_qty': 1,})
+
         return res
 
 
