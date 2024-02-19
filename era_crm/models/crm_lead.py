@@ -456,6 +456,7 @@ class Lead(models.Model):
             'recurrence_id': subscription.recurrence_id.id,
             'recurring_monthly': subscription.duration,
             'internal_note': internal_note,
+            'lead_id': self.id,
         }
 
 

@@ -95,11 +95,24 @@ class SaleOrder(models.Model):
         invoiceable_line_ids = []
         for line in res:
             if line.invoice_status == 'to invoice' and line.recurrence_id and line.next_invoice_date<=fields.Date.today() and line.price_unit>0:
+#            if line.invoice_status == 'to invoice' and line.recurrence_id and line.price_unit>0:
                 invoiceable_line_ids.append(line.id)
             elif not line.recurrence_id and line.qty_invoiced==0 and line.price_unit>0:
                 invoiceable_line_ids.append(line.id)
         return self.env["sale.order.line"].browse(invoiceable_line_ids)
-    
+
+    def action_invoice_subscription(self):
+        account_move = self._create_recurring_invoice()
+        if self.lead_id:
+            for line in account_move.invoice_line_ids:
+                if line.product_id.recurring_invoice and line.product_id.detailed_type=='service':
+                    line.quantity = 1
+        if account_move:
+            return self.action_view_invoice()
+        else:
+            raise UserError(self._nothing_to_invoice_error_message())
+
+
     def _get_invoiced(self):
         # The invoice_ids are obtained thanks to the invoice lines of the SO
         # lines, and we also search for possible refunds created directly from
@@ -110,10 +123,16 @@ class SaleOrder(models.Model):
             order.invoice_ids = invoices
             order.invoice_count = len(invoices)
 
+            next_invoice_date = order.date_order.date()
             if order.invoice_count == 0 and order.recurrence_id:
-                order.next_invoice_date = order.date_order.date()
                 for line in order.order_line.filtered(lambda l: l.recurrence_id):
                     line.next_invoice_date =  order.date_order.date()
+            elif order.invoice_count > 0 and order.recurrence_id:
+                for invoice in invoices:
+                    if invoice.state=='posted':
+                        next_invoice_date = datetime(year=invoice.invoice_date.year, month=invoice.invoice_date.month+1,day=1)
+            order.next_invoice_date = next_invoice_date
+
 
 class SaleOrderLine(models.Model):
     _inherit = 'sale.order.line'
@@ -376,4 +395,37 @@ class SaleOrderLine(models.Model):
             
         return res
 
+    @api.depends('state', 'product_uom_qty', 'qty_delivered', 'qty_to_invoice', 'qty_invoiced')
+    def _compute_invoice_status(self):
+        """
+        Compute the invoice status of a SO line. Possible statuses:
+        - no: if the SO is not in status 'sale' or 'done', we consider that there is nothing to
+          invoice. This is also the default value if the conditions of no other status is met.
+        - to invoice: we refer to the quantity to invoice of the line. Refer to method
+          `_compute_qty_to_invoice()` for more information on how this quantity is calculated.
+        - upselling: this is possible only for a product invoiced on ordered quantities for which
+          we delivered more than expected. The could arise if, for example, a project took more
+          time than expected but we decided not to invoice the extra cost to the client. This
+          occurs only in state 'sale', so that when a SO is set to done, the upselling opportunity
+          is removed from the list.
+        - invoiced: the quantity invoiced is larger or equal to the quantity ordered.
+        """
+        precision = self.env['decimal.precision'].precision_get('Product Unit of Measure')
+        for line in self:
+            if line.state not in ('sale', 'done'):
+                line.invoice_status = 'no'
+            elif line.is_downpayment and line.untaxed_amount_to_invoice == 0:
+                line.invoice_status = 'invoiced'
+            elif not float_is_zero(line.qty_to_invoice, precision_digits=precision):
+                line.invoice_status = 'to invoice'
+            elif line.state == 'sale' and line.product_id.invoice_policy == 'order' and\
+                    line.product_uom_qty >= 0.0 and\
+                    float_compare(line.qty_delivered, line.product_uom_qty, precision_digits=precision) == 1:
+                line.invoice_status = 'upselling'
+            elif float_compare(line.qty_invoiced, line.product_uom_qty, precision_digits=precision) >= 0:
+                line.invoice_status = 'invoiced'
+            elif line.price_unit == 0:
+                line.invoice_status = 'no'
+            else:
+                line.invoice_status = 'no'
 

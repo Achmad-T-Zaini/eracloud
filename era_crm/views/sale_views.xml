@@ -127,7 +127,7 @@
             </xpath>
 
             <xpath expr="//field[@name='order_line']/tree" position="inside">
-                <field name="next_invoice_date" invisible="0"/>
+                <field name="next_invoice_date" invisible="0" optional="hide" />
             </xpath>
 
             <xpath expr="//field[@name='order_line']" position="attributes">
