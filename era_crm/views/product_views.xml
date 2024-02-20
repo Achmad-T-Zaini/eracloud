@@ -7,6 +7,7 @@
         <field name="arch" type="xml">
             <field name="parent_id" position="after">
                 <field name="show_sales" />
+                <field name="is_disc_period" />
             </field>
         </field>
     </record>

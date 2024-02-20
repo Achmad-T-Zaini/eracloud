@@ -172,7 +172,6 @@ style="margin-bottom:0px;">
                         <field name="total_contract_discount" readonly="1" force_save="1"/>
                         <field name="tax_id" widget="many2many_tags" options="{'no_create': True}"
                                     domain="[('type_tax_use','=','sale'),('company_id','in',[company_id,False]), ('country_id', '=', tax_country_id)]"
-                                    context="{'active_test': True}"
                                 />
                         <field name="total_tax" readonly="1" force_save="1"/>
                         <field name="grand_total_contract" readonly="1" force_save="1"/>

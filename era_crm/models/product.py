@@ -4,12 +4,12 @@ from odoo import api, fields, models, _
 from odoo.exceptions import UserError
 
 class ResConfigSettings(models.TransientModel):
-	_inherit = 'res.config.settings'
+    _inherit = 'res.config.settings'
 
-	monthly_subscription = fields.Many2one('product.product', 
+    monthly_subscription = fields.Many2one('product.product', 
 		string='Monthly Subscription', domain= lambda self: [("recurring_invoice", "=", True)],
 		config_parameter='sales.monthly_subscription')
-	yearly_subscription = fields.Many2one('product.product', 
+    yearly_subscription = fields.Many2one('product.product', 
 		string='Yearly Subscription', domain= lambda self: [("recurring_invoice", "=", True)],
 		config_parameter='sales.yearly_subscription')
 
@@ -17,6 +17,7 @@ class ProductCategory(models.Model):
     _inherit = 'product.category'
 
     show_sales = fields.Boolean(string='Show on Sales',default=False, store=True, copy=False)
+    is_disc_period = fields.Boolean(string='Discount Period',default=False, store=True, copy=False)
 
 
 class ProductProduct(models.Model):

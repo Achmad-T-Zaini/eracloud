@@ -255,11 +255,16 @@ class Lead(models.Model):
     @api.onchange('order_id')
     def _onchange_order_id(self):
         if not self.order_id:
-            self.write({'summary_order_line': [(6,0,[])] })
+            self.write({'summary_order_line': [(6,0,[])], 'tax_id': [(6,0,[self.env.company.account_sale_tax.id])] })  
 
-    @api.onchange('team_id')
+    @api.onchange('team_id','user_id', 'company_id')
     def _onchange_team_id(self):
-        self.user_id = False
+        if self.user_id:
+            self.update({ 'company_id': self.env.company.id})             
+        
+        if self.company_id:
+            self.update({ 'tax_id': [(6,0,[self.env.company.account_sale_tax_id.id])] })             
+
         domain = {'domain': {'user_id': [('share', '=', False), ('company_ids', 'in', self.team_id.member_company_ids.ids,)]}}
 
         users = self.env['res.users'].search([('id','=',self.team_id.member_ids.ids)])
@@ -461,6 +466,20 @@ class Lead(models.Model):
             'lead_id': self.id,
         }
 
+    @api.onchange('summary_order_line', 'summary_order_line.discount', 'summary_order_line.discount_type')
+    def _onchange_summary_order_line(self):
+        if self.summary_order_line:
+            for line in self.summary_order_line:
+                subtotal = self.order_line.filtered(lambda l: l.order_sequence==line.order_sequence 
+                                                    and l.product_categ_id==line.product_categ_id 
+                                                    and l.recurrence_id==line.recurrence_id 
+                                                    and l.display_type=='line_subtotal')
+                if subtotal:
+                    if line.discount_type!='periode':
+                        subtotal.update({'discount': line.price_discount*100,})
+                    elif line.discount_type=='periode':
+                        subtotal.update({'discount': 0, })
+#                        raise UserError(_('cek %s == %s')%(subtotal.discount,line.discount))
 
     @api.onchange('order_id', 'order_id.order_line', 'order_id.order_line.product_id','order_id.order_line.product_uom_qty','order_id.order_line.price_unit','order_id.order_line.discount',
             'order_line','order_line.product_uom_qty','order_line.price_unit','order_line.discount','order_line.product_id','expected_revenue', 'order_id.amount_total',
@@ -498,13 +517,13 @@ class Lead(models.Model):
             def_qty = subtotal.product_uom_qty
             if subtotal.product_uom_qty==0:
                 def_qty = 1
-                
-            subtotal.update({       'product_uom_qty': def_qty,
-                                     'price_unit': sum(lp.crm_price_subtotal for lp in line_product),
-                                     'crm_price_unit': sum(lp.crm_price_subtotal for lp in line_product),})
 
             line_summarys = self.summary_order_line.filtered(lambda x: x.order_sequence==subtotal.order_sequence and x.product_categ_id.id==subtotal.product_categ_id.id and x.recurrence_id==subtotal.recurrence_id)
             if line_summarys:
+                subtotal.update({       'product_uom_qty': def_qty,
+                                        'discount': line_summarys.price_discount*100,
+                                         'price_unit': sum(lp.crm_price_subtotal for lp in line_product),
+                                         'crm_price_unit': sum(lp.crm_price_subtotal for lp in line_product),})
                 line_summarys.update({'name': subtotal.name,
                                      'price_unit': subtotal.price_unit,
                                      'product_uom_qty': subtotal.product_uom_qty,
@@ -694,23 +713,26 @@ class Lead(models.Model):
     @api.depends('order_id', 'order_id.amount_total', 'currency_id','order_line', 'order_line.price_unit', 'order_line.discount', 'order_line.product_uom_qty', 'tax_id')
     def _compute_expected_revenue(self):
         for order in self:
-            total_monthly = total_discount = total_tax = 0
+            total_monthly = total_discount = total_tax = periode_disc = 0
             order.total_disc =0
             max_disc = 0
             if order.order_id and order.order_line:
                 max_disc = order.order_line.sorted(key='discount', reverse=True)[0].discount
-            total_monthly = sum(line.crm_price_subtotal for line in order.order_line.filtered(lambda l: l.product_id and l.recurrence_id.unit=='month'))
-            total_yearly = sum(line.crm_price_subtotal  for line in order.order_line.filtered(lambda l: l.product_id and l.recurrence_id.unit=='year'))
-            total_onetime = sum(line.crm_price_subtotal for line in order.order_line.filtered(lambda l: l.product_id and not l.recurrence_id))
+            total_monthly = sum(line.crm_price_subtotal for line in order.order_line.filtered(lambda l: l.display_type=='line_subtotal' and l.recurrence_id.unit=='month'))
+            total_yearly = sum(line.crm_price_subtotal  for line in order.order_line.filtered(lambda l: l.display_type=='line_subtotal' and l.recurrence_id.unit=='year'))
+            total_onetime = sum(line.crm_price_subtotal for line in order.order_line.filtered(lambda l: l.display_type=='line_subtotal' and not l.recurrence_id))
             bruto_total_monthly = sum(line.crm_price_unit * line.product_uom_qty  for line in order.order_line.filtered(lambda l: l.product_id and l.recurrence_id.unit=='month'))
             bruto_total_yearly = sum(line.crm_price_unit * line.product_uom_qty   for line in order.order_line.filtered(lambda l: l.product_id and l.recurrence_id.unit=='year'))
             bruto_total_onetime = sum(line.crm_price_unit * line.product_uom_qty  for line in order.order_line.filtered(lambda l: l.product_id and not l.recurrence_id))
 
-            total_contract = (total_monthly * order.duration) + total_yearly + total_onetime
+            periode_disc = sum(line.price_unit * line.product_uom_qty * line.discount for line in order.summary_order_line.filtered(lambda l: l.discount_type=='periode'))
+            total_contract = (total_monthly * order.duration) + total_yearly + total_onetime - periode_disc
             total_contract_bruto = (bruto_total_monthly * order.duration) + bruto_total_yearly + bruto_total_onetime
             total_discount = total_contract_bruto - total_contract
+#            raise UserError(_('ttl %s = %s = %s')%(total_contract,total_contract_bruto,total_discount))
             if total_contract>0:
-                self.total_disc = total_discount/total_contract_bruto * 100
+                order.total_disc = total_discount/total_contract_bruto * 100
+                order.total_contract_discount = total_discount
 
             order.total_contract = total_contract_bruto
 
@@ -808,7 +830,6 @@ class Lead(models.Model):
                                     line_section.update({'recurrence_id': line[2]['recurrence_id'],})
             
         res = super().write(vals)
-
         new_subtotals = self.order_line.filtered(lambda x: x.display_type=='line_subtotal' and x.order_sequence==order_sequence)
 #        raise UserError(_('ord seq %s == %s\n%s')%(order_sequence,ori_order_sequence,new_subtotals))
         if new_subtotals:
@@ -902,6 +923,9 @@ class Lead(models.Model):
 #            totals = list(tax_results['totals'].values())[0]
 #            amount_untaxed = totals['amount_untaxed']
 #            amount_tax = totals['amount_tax']
+            if line.discount_type=='periode' and not line.product_categ_id.is_disc_period:
+                raise UserError(_('This product can not Discount Period'))
+
             price_discount = price_subtotal = price_total = 0.0
             discount = 0.0
             if line.discount_type=='percent':
