@@ -380,12 +380,18 @@ class Lead(models.Model):
                     pricing_id = self.env['product.pricing'].search([('recurrence_id','=',subtt.recurrence_id.id),('product_template_id','=',subscription_product.product_tmpl_id.id)])
                     product_uom_qty = subtt.product_uom_qty
                     if self.recurrence_id.id == subtt.recurrence_id.id:
-                       product_uom_qty = self.duration
+                       summary_order = self.summary_order_line.filtered(lambda l: l.order_sequence==subtt.order_sequence 
+                                                                        and l.product_categ_id==subtt.product_categ_id 
+                                                                        and l.recurrence_id==subtt.recurrence_id
+                                                                        and l.discount_type=='periode')
+                       periode_disc = summary_order.discount if summary_order else 0
+                       product_uom_qty = self.duration - periode_disc
                     vals.append((0,0,{'name': subtt.name.replace('Subtotal ','Subscriptions'), 
                                       'product_id': subscription_product.id,
                                       'product_uom_qty': product_uom_qty,
                                       'invoice_status': 'to invoice',
 #                                      'product_uom': product_id.uom_id.id,
+                                      'product_categ_id': subtt.product_categ_id.id,
                                       'pricing_id': pricing_id.id or False,
                                       'recurrence_id': subtt.recurrence_id.id,
                                       'price_unit': subtt.crm_price_subtotal,}))
@@ -394,12 +400,18 @@ class Lead(models.Model):
                 pricing_id = self.env['product.pricing'].search([('recurrence_id','=',sub_total.recurrence_id.id),('product_template_id','=',subscription_product.product_tmpl_id.id)])
                 product_uom_qty = sub_total.product_uom_qty
                 if self.recurrence_id.id == sub_total.recurrence_id.id:
-                   product_uom_qty = self.duration
+                    summary_order = self.summary_order_line.filtered(lambda l: l.order_sequence==sub_total.order_sequence 
+                                                                    and l.product_categ_id==sub_total.product_categ_id 
+                                                                    and l.recurrence_id==sub_total.recurrence_id
+                                                                    and l.discount_type=='periode')
+                    periode_disc = summary_order.discount if summary_order else 0
+                    product_uom_qty = self.duration - periode_disc
                 vals.append((0,0,{'name': sub_total.name.replace('Subtotal ','Subscriptions'), 
                                   'product_id': subscription_product.id,
                                   'product_uom_qty': product_uom_qty,
                                   'invoice_status': 'to invoice',
 #                                      'product_uom': product_id.uom_id.id,
+                                  'product_categ_id': sub_total.product_categ_id.id,
                                   'pricing_id': pricing_id.id or False,
                                   'recurrence_id': sub_total.recurrence_id.id,
                                   'price_unit': sub_total.crm_price_subtotal,}))
@@ -409,6 +421,7 @@ class Lead(models.Model):
                 vals.append((0,0,{'name': line.product_id.name, 
                                   'product_id': line.product_id.id,
                                   'product_uom_qty': line.product_uom_qty,
+                                  'product_categ_id': sub_total.product_categ_id.id,
                                   'product_uom': line.product_uom.id,
                                   'price_unit': (100-line.discount)/100 * (line.crm_price_unit * line.product_uom_qty)}))
 
