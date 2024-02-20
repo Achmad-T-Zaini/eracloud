@@ -185,6 +185,8 @@ class Lead(models.Model):
                 and getattr(self, self._state_field) in self._state_from
             )
 
+    def _get_lead_sale_order_domain(self):
+        return [('state', 'not in', ('sent', 'cancel'))]
 
     @api.depends('review_ids')
     def compute_review_status(self):
