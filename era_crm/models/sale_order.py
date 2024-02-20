@@ -379,7 +379,7 @@ class SaleOrderLine(models.Model):
             subscription_end_date = datetime(year=self.order_id.date_order.year, month=self.order_id.date_order.month+1,day=1) - relativedelta(days=1)
             num_days = calendar.monthrange(self.order_id.date_order.year, self.order_id.date_order.month)[1]
             res['name'] = res['name'][:-10] + subscription_end_date.strftime('%m/%d/%Y')
-            res['price_unit'] = (self.price_unit / num_days) * (num_days - self.order_id.date_order.day)
+            res['price_unit'] = (self.price_unit / num_days) * (num_days - self.order_id.date_order.day +1)
             res['subscription_end_date']=subscription_end_date.date()
             self.next_invoice_date = subscription_end_date.date() + relativedelta(days=1)
         elif self.recurrence_id.unit=='year' and self.order_id.date_order.date()==self.order_id.next_invoice_date:
