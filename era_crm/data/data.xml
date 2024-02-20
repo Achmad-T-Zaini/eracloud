@@ -20,7 +20,7 @@
             <field name="suffix">/%(era_code)s/EDM/%(rom_month)s/%(year)s</field>
             <field name="implementation">no_gap</field>
             <field name="active">True</field>
-            <field name="company_id">2</field>
+            <field name="company_id">7</field>
             <field name="code">quotation.sequence</field>
             <field name="padding">5</field>
             <field name="use_date_range">1</field>
