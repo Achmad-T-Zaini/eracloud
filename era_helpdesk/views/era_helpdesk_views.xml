@@ -168,8 +168,6 @@
                         <group>
                             <field name="order_id" options="{'no_create': True}"/>
                             <field name="sale_order_line_id" options="{'no_create': True}"/>
-                            <field name="product_tmpl_id" invisible="1"/>
-                            <field name="bom_id" invisible="1"/>
                         </group>
                         <group>
                             <field name="open_case" />
@@ -180,6 +178,8 @@
                     </group>
                     <group>
                         <field name="is_change_service" invisible="1"/>
+                        <field name="product_tmpl_id" invisible="1"/>
+                        <field name="bom_id" invisible="1"/>
                         <field name="bom_line_ids"  widget="one2many_list" context="{'default_parent_product_tmpl_id': product_tmpl_id, 'default_bom_id': bom_id}"
                             attrs="{ 'readonly': [('is_change_service','=',False)]}" force_save="1"
                         >
