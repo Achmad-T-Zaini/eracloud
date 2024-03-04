@@ -1,6 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
+<record id="helpdesk_stage_view_tree_inherited" model="ir.ui.view">
+  <field name='name'>helpdesk.stage.tree.inherited</field>
+  <field name="model">helpdesk.stage</field>
+  <field name="inherit_id" ref="helpdesk.helpdesk_stage_view_tree"/>
+  <field name="arch" type="xml">
+    <xpath expr="//field[@name='fold']" position="after">
+        <field name="is_closed" optional="show"/>
+    </xpath>
+  </field>
+</record>
+
 <record id="helpdesk_tickets_view_tree_inherited" model="ir.ui.view">
   <field name='name'>helpdesk.ticket.form.inherited</field>
   <field name="model">helpdesk.ticket</field>
@@ -14,7 +25,6 @@
     </xpath>
   </field>
 </record>
-
 
      <record id="helpdesk.helpdesk_ticket_type_view_tree" model="ir.ui.view">
         <field name="name">helpdesk.ticket.type.tree</field>

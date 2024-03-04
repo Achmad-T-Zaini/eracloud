@@ -19,6 +19,10 @@ from odoo.addons.web.controllers.utils import clean_action
 class HelpdeskTeam(models.Model):
     _inherit = "helpdesk.team"
 
+class HelpdeskStage(models.Model):
+    _inherit = "helpdesk.stage"
+
+    is_closed = fields.Boolean(string='Closed', default=False, copy=False, store=True)
 
 class HelpdeskTicketType(models.Model):
     _inherit = 'helpdesk.ticket.type'
