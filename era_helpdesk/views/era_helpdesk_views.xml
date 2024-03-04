@@ -56,7 +56,7 @@
   <field name="arch" type="xml">
 
         <page name="description" position="after">
-            <page string="Product Components" name="component">
+            <page string="Product Components" name="component" attrs="{ 'readonly': [('is_closed','=',True)]}">
                         <field name="product_tmpl_id" invisible="1"/>
                         <field name="bom_id" invisible="1"/>
                         <field name="is_closed" invisible="1"/>
@@ -82,6 +82,14 @@
                             </field>
             </page>
         </page>
+    <xpath expr="//field[@name='description']" position="attributes">
+        <attribute name="attrs">{ 'readonly': [('is_closed','=',True)]}</attribute>
+    </xpath>
+
+    <xpath expr="//field[@name='timesheet_ids']" position="attributes">
+        <attribute name="attrs">{ 'readonly': [('is_closed','=',True)]}</attribute>
+    </xpath>
+
   </field>
 </record>
 
@@ -109,13 +117,13 @@
         <field name="name">helpdesk.ticket.form</field>
         <field name="model">helpdesk.ticket</field>
         <field name="arch" type="xml">
-            <form string="Helpdesk Ticket" attrs="{ 'readonly': [('is_closed','=',True)]}">
+            <form string="Helpdesk Ticket" >
                 <header>
                     <button name="assign_ticket_to_self" string="Assign To Me" type="object" class="oe_highlight" groups="helpdesk.group_helpdesk_user" attrs="{'invisible': [('user_id', '!=', False)]}" data-hotkey="q"/>
                     <field name="stage_id" widget="statusbar"
                         options="{'clickable': '1', 'fold_field': 'fold'}"/>
                 </header>
-                <sheet>
+                <sheet >
                     <field name="legend_blocked" invisible="1"/>
                     <field name="legend_normal" invisible="1"/>
                     <field name="legend_done" invisible="1"/>
@@ -150,7 +158,7 @@
                     <field name="kanban_state" widget="state_selection"/>
                     <field name="use_sla" invisible="1"/>
                     <div class="oe_title">
-                        <h1><field name="name" class="field_name" placeholder="e.g. Product arrived damaged"/></h1>
+                        <h1><field name="name" class="field_name" placeholder="e.g. Product arrived damaged" attrs="{ 'readonly': [('is_closed','=',True)]}"/></h1>
                         <field name="sla_status_ids" widget="helpdesk_sla_many2many_tags" attrs="{'invisible': [('use_sla', '=', False)]}" options="{'color_field': 'color', 'no_edit_color': True}" readonly="1" groups="helpdesk.group_use_sla"/>
                         <span attrs="{'invisible': ['|', ('sla_deadline', '=', False), ('use_sla', '=', False)]}" groups="helpdesk.group_use_sla" class="mx-2 text-muted">
                             <i class="fa fa-lg fa-clock-o me-2" aria-label="Sla Deadline" title="Sla Deadline"/>
@@ -160,45 +168,45 @@
                     <group class="mb-0 mt-4">
                         <group>
                             <field name="partner_id" class="field_partner_id" widget="res_partner_many2one" context="{'default_name': partner_name, 'default_email': partner_email, 'default_phone': partner_phone}"/>
-                            <field name="partner_name" attrs="{'invisible': [('partner_id', '!=', False)]}"/>
+                            <field name="partner_name" attrs="{'invisible': [('partner_id', '!=', False)], 'readonly': [('is_closed','=',True)]}"/>
                             <field name="is_partner_email_update" invisible="1"/>
                             <field name="is_partner_phone_update" invisible="1"/>
                             <label for="partner_email" string="Email"/>
                             <div class="o_row o_row_readonly">
-                                <field name="partner_email" widget="email" string="email"/>
+                                <field name="partner_email" widget="email" string="email" attrs="{ 'readonly': [('is_closed','=',True)]}"/>
                                 <span class="fa fa-exclamation-triangle text-warning oe_edit_only"
                                 title="By saving this change, the customer email will also be updated." attrs="{'invisible': [('is_partner_email_update', '=', False)]}"/>
                             </div>
                             <label for="partner_phone" string="Phone"/>
                             <div class="o_row o_row_readonly">
-                                <field name="partner_phone" widget="phone" string="Phone"/>
+                                <field name="partner_phone" widget="phone" string="Phone" attrs="{ 'readonly': [('is_closed','=',True)]}"/>
                                 <span class="fa fa-exclamation-triangle text-warning oe_edit_only"
                                 title="By saving this change, the customer phone number will also be updated." attrs="{'invisible': [('is_partner_phone_update', '=', False)]}"/>
                             </div>
-                            <field name="email_cc" groups="base.group_no_one"/>
+                            <field name="email_cc" groups="base.group_no_one" attrs="{ 'readonly': [('is_closed','=',True)]}"/>
                         </group>
                         <group>
                             <field name="active" invisible="1"/>
-                            <field name="team_id" required="1" context="{'kanban_view_ref': 'helpdesk.helpdesk_team_view_kanban_mobile', 'default_use_sla': True}"/>
-                            <field name="user_id" class="field_user_id" domain="['&amp;', ('id', 'in', domain_user_ids), ('share', '=', False)]" widget="many2one_avatar_user"/>
-                            <field name="domain_user_ids" invisible="1"/>
-                            <field name="priority" widget="priority"/>
-                            <field name="ticket_type_id"/>
-                            <field name="tag_ids" widget="many2many_tags" options="{'color_field': 'color'}"/>
-                            <field name="company_id" groups="base.group_multi_company" context="{'create': False}"/>
+                            <field name="team_id" required="1" context="{'kanban_view_ref': 'helpdesk.helpdesk_team_view_kanban_mobile', 'default_use_sla': True}" attrs="{ 'readonly': [('is_closed','=',True)]}"/>
+                            <field name="user_id" class="field_user_id" domain="['&amp;', ('id', 'in', domain_user_ids), ('share', '=', False)]" widget="many2one_avatar_user" attrs="{ 'readonly': [('is_closed','=',True)]}"/>
+                            <field name="domain_user_ids" invisible="1" attrs="{ 'readonly': [('is_closed','=',True)]}"/>
+                            <field name="priority" widget="priority" attrs="{ 'readonly': [('is_closed','=',True)]}"/>
+                            <field name="ticket_type_id" attrs="{ 'readonly': [('is_closed','=',True)]}"/>
+                            <field name="tag_ids" widget="many2many_tags" options="{'color_field': 'color'}" attrs="{ 'readonly': [('is_closed','=',True)]}"/>
+                            <field name="company_id" groups="base.group_multi_company" context="{'create': False}" attrs="{ 'readonly': [('is_closed','=',True)]}"/>
                         </group>
                     </group>
                     <group class="mb-0 mt-4">
                         <group>
-                            <field name="order_id" options="{'no_create': True}"/>
-                            <field name="sale_order_line_id" options="{'no_create': True}"/>
+                            <field name="order_id" options="{'no_create': True}" attrs="{ 'readonly': [('is_closed','=',True)]}"/>
+                            <field name="sale_order_line_id" options="{'no_create': True}" attrs="{ 'readonly': [('is_closed','=',True)]}"/>
                             <field name="is_change_service" invisible="1"/>
                             <field name="product_tmpl_id" invisible="1"/>
                             <field name="bom_id" invisible="1"/>
                             <field name="is_closed" invisible="1"/>
                         </group>
                         <group>
-                            <field name="open_case" />
+                            <field name="open_case"  attrs="{ 'readonly': [('is_closed','=',True)]}"/>
                             <field name="response_date" readonly="1" force_save="1"/>
                             <field name="resolution_date" readonly="1" force_save="1"/>
                             <field name="resolution_time" readonly="1" force_save="1" />
@@ -234,7 +242,7 @@
                         <field name="properties" nolabel="1" columns="2" hideKanbanOption="1"/>
                     </div>
 -->
-                    <field name="description" class="oe-bordered-editor field_description" placeholder="Description of the ticket..."/>
+                    <field name="description" class="oe-bordered-editor field_description" placeholder="Description of the ticket..." attrs="{ 'readonly': [('is_closed','=',True)]}"/>
                 </sheet>
                 <div class="oe_chatter">
                     <field name="message_follower_ids"/>
