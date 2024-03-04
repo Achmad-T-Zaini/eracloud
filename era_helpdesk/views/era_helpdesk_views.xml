@@ -12,6 +12,17 @@
   </field>
 </record>
 
+<record id="helpdesk_stage_view_form_inherited" model="ir.ui.view">
+  <field name='name'>helpdesk.stage.form.inherited</field>
+  <field name="model">helpdesk.stage</field>
+  <field name="inherit_id" ref="helpdesk.helpdesk_stage_view_form"/>
+  <field name="arch" type="xml">
+    <xpath expr="//field[@name='sequence']" position="after">
+        <field name="is_closed" optional="show"/>
+    </xpath>
+  </field>
+</record>
+
 <record id="helpdesk_tickets_view_tree_inherited" model="ir.ui.view">
   <field name='name'>helpdesk.ticket.form.inherited</field>
   <field name="model">helpdesk.ticket</field>
