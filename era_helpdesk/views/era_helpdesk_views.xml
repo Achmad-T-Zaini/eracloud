@@ -109,7 +109,7 @@
         <field name="name">helpdesk.ticket.form</field>
         <field name="model">helpdesk.ticket</field>
         <field name="arch" type="xml">
-            <form string="Helpdesk Ticket">
+            <form string="Helpdesk Ticket" attrs="{ 'readonly': [('is_closed','=',True)]}">
                 <header>
                     <button name="assign_ticket_to_self" string="Assign To Me" type="object" class="oe_highlight" groups="helpdesk.group_helpdesk_user" attrs="{'invisible': [('user_id', '!=', False)]}" data-hotkey="q"/>
                     <field name="stage_id" widget="statusbar"
