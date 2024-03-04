@@ -12,7 +12,8 @@ class MrpProduction(models.Model):
 
     @api.onchange('state')
     def _onchange_state_era(self):
-        self.update({'workorder_status': self.name + ' ' + dict(self._fields['state'].selection).get(self.state)})
+        if self.name and self.state:
+            self.update({'workorder_status': self.name + ' ' + dict(self._fields['state'].selection).get(self.state)})
 
 class MrpWorkorder(models.Model):
     _inherit = 'mrp.workorder'
@@ -39,6 +40,7 @@ class MrpBom(models.Model):
     _inherit = 'mrp.bom'
 
     recurrence_id = fields.Many2one('sale.temporal.recurrence', string='Recurrence', ondelete='restrict', readonly=False, store=True)
+    lead_id = fields.Many2one('crm.lead',string='CRM ID',readonly=True, copy=False)
 
 
 class MrpBomLine(models.Model):

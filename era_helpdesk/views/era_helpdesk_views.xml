@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+<record id="helpdesk_tickets_view_tree_inherited" model="ir.ui.view">
+  <field name='name'>helpdesk.ticket.form.inherited</field>
+  <field name="model">helpdesk.ticket</field>
+  <field name="inherit_id" ref="helpdesk.helpdesk_tickets_view_tree"/>
+  <field name="arch" type="xml">
+    <xpath expr="//field[@name='activity_ids']" position="after">
+      <field optional="hide" name="open_case"/>
+      <field optional="hide" name="response_date"/>
+      <field optional="hide" name="resolution_date"/>
+      <field optional="hide" name="resolution_time"/>
+    </xpath>
+  </field>
+</record>
+
+
+     <record id="helpdesk.helpdesk_ticket_type_view_tree" model="ir.ui.view">
+        <field name="name">helpdesk.ticket.type.tree</field>
+        <field name="model">helpdesk.ticket.type</field>
+        <field name="arch" type="xml">
+            <tree editable="bottom" string="Tag" sample="1">
+                <field name="sequence" widget="handle"/>
+                <field name="name" placeholder="e.g. Question"/>
+                <field name="is_change_service" />
+            </tree>
+        </field>
+    </record>
+
+<record id="helpdesk_ticket_view_form_inherit_helpdesk_timesheet_inherited" model="ir.ui.view">
+  <field name="name">helpdesk.ticket.view.form.inherit.helpdesk.timesheet.inherited</field>
+  <field name="model">helpdesk.ticket</field>
+  <field name="inherit_id" ref="helpdesk_timesheet.helpdesk_ticket_view_form_inherit_helpdesk_timesheet"/>
+  <field name="arch" type="xml">
+
+        <page name="description" position="after">
+            <page string="Product Components" name="component">
+                        <field name="is_change_service" invisible="1"/>
+                        <field name="bom_line_ids" widget="one2many_list" context="{'default_parent_product_tmpl_id': product_tmpl_id, 'default_bom_id': bom_id}"
+                            attrs="{ 'readonly': [('is_change_service','=',False)]}" force_save="1"
+                        >
+                                <tree string="Components" editable="bottom">
+                                    <field name="company_id" invisible="1"/>
+                                    <field name="product_id" context="{'default_detailed_type': 'product'}"/>
+                                    <field name="product_tmpl_id" invisible="1"/>
+                                    <field name="product_qty"/>
+                                    <field name="product_uom_category_id" invisible="1"/>
+                                    <field name="parent_product_tmpl_id" invisible="1" />
+                                    <field name="product_uom_id" options="{'no_open':True,'no_create':True}" groups="uom.group_uom"/>
+                                    <field name="possible_bom_product_template_attribute_value_ids" invisible="1"/>
+                                    <field name="bom_product_template_attribute_value_ids" invisible="1"/>
+                                    <field name="allowed_operation_ids" invisible="1"/>
+                                    <field name="operation_id" invisible="1"/>
+                                    <field name="manual_consumption_readonly" invisible="1"/>
+                                    <field name="manual_consumption" optional="hide" width="1.0" attrs="{'readonly': [('manual_consumption_readonly', '=', True)]}"/>
+                                </tree>
+                            </field>
+            </page>
+        </page>
+  </field>
+</record>
+
+    <!-- actions opening views on models -->
+<record id="helpdesk_sla_view_form_inherited" model="ir.ui.view">
+  <field name="name">helpdesk.sla.view.form.inherited</field>
+  <field name="model">helpdesk.sla</field>
+  <field name="inherit_id" ref="helpdesk.helpdesk_sla_view_form"/>
+  <field name="arch" type="xml">
+    <xpath expr="//form[1]/sheet[1]/group[1]/group[1]/label[1]" position="attributes">
+      <attribute name="string">Resolution Time</attribute>
+    </xpath>
+    <xpath expr="//form[1]/sheet[1]/group[1]/group[1]/div[1]" position="after">
+      <label for="response_time" string="Response Time"/>
+      <div class="o_row">
+        <field name="response_time" widget="float_time"/>
+        <span class="o_field_widget o_readonly_modifier">Working Hours</span>
+      </div>
+      <field name="next_team_id" />
+    </xpath>
+  </field>
+</record>
+
+    <record id="helpdesk.helpdesk_ticket_view_form" model="ir.ui.view">
+        <field name="name">helpdesk.ticket.form</field>
+        <field name="model">helpdesk.ticket</field>
+        <field name="arch" type="xml">
+            <form string="Helpdesk Ticket">
+                <header>
+                    <button name="assign_ticket_to_self" string="Assign To Me" type="object" class="oe_highlight" groups="helpdesk.group_helpdesk_user" attrs="{'invisible': [('user_id', '!=', False)]}" data-hotkey="q"/>
+                    <field name="stage_id" widget="statusbar"
+                        options="{'clickable': '1', 'fold_field': 'fold'}"/>
+                </header>
+                <sheet>
+                    <field name="legend_blocked" invisible="1"/>
+                    <field name="legend_normal" invisible="1"/>
+                    <field name="legend_done" invisible="1"/>
+                    <field name="rating_count" invisible="1"/>
+                    <field name="use_rating" invisible="1"/>
+                    <field name="rating_avg" invisible="1"/>
+                    <field name="company_id" invisible="1"/>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_open_ratings" type="object" class="oe_stat_button" icon="" attrs="{'invisible': ['|', ('use_rating', '=', False), ('rating_count', '=', 0)]}" groups="helpdesk.group_use_rating">
+                            <i class="fa fa-fw o_button_icon fa-smile-o text-success" attrs="{'invisible': [('rating_avg', '&lt;', 3.66)]}" title="Satisfied"/>
+                            <i class="fa fa-fw o_button_icon fa-meh-o text-warning" attrs="{'invisible': ['|', ('rating_avg', '&lt;', 2.33), ('rating_avg', '&gt;=', 3.66)]}" title="Okay"/>
+                            <i class="fa fa-fw o_button_icon fa-frown-o text-danger" attrs="{'invisible': [('rating_avg', '&gt;=', 2.33)]}" title="Dissatisfied"/>
+                            <div class="o_field_widget o_stat_info">
+                                <span class="o_stat_value"><field name="rating_avg_text" nolabel="1"/></span>
+                                <span class="o_stat_text">Rating</span>
+                            </div>
+                        </button>
+                        <button class="oe_stat_button" type="object" name="action_open_helpdesk_ticket" icon="fa-life-ring" attrs="{'invisible': ['|', ('partner_id', '=', False), ('partner_ticket_count', '=', 0)]}">
+                            <div class="o_field_widget o_stat_info">
+                                <span class="o_stat_value">
+                                    <field name="partner_ticket_count" nolabel="1"/>
+                                    <span class="text-secondary fw-normal"> Tickets</span>
+                                </span>
+                                <span class="o_stat_value">
+                                    <field name="partner_open_ticket_count" nolabel="1"/>
+                                    <span class="text-secondary fw-normal"> Open</span>
+                                </span>
+                            </div>
+                        </button>
+                    </div>
+                    <widget name="web_ribbon" title="Archived" bg_color="bg-danger" attrs="{'invisible': [('active', '=', True)]}"/>
+                    <field name="kanban_state" widget="state_selection"/>
+                    <field name="use_sla" invisible="1"/>
+                    <div class="oe_title">
+                        <h1><field name="name" class="field_name" placeholder="e.g. Product arrived damaged"/></h1>
+                        <field name="sla_status_ids" widget="helpdesk_sla_many2many_tags" attrs="{'invisible': [('use_sla', '=', False)]}" options="{'color_field': 'color', 'no_edit_color': True}" readonly="1" groups="helpdesk.group_use_sla"/>
+                        <span attrs="{'invisible': ['|', ('sla_deadline', '=', False), ('use_sla', '=', False)]}" groups="helpdesk.group_use_sla" class="mx-2 text-muted">
+                            <i class="fa fa-lg fa-clock-o me-2" aria-label="Sla Deadline" title="Sla Deadline"/>
+                            <field name="sla_deadline" widget="remaining_days"/>
+                        </span>
+                    </div>
+                    <group class="mb-0 mt-4">
+                        <group>
+                            <field name="partner_id" class="field_partner_id" widget="res_partner_many2one" context="{'default_name': partner_name, 'default_email': partner_email, 'default_phone': partner_phone}"/>
+                            <field name="partner_name" attrs="{'invisible': [('partner_id', '!=', False)]}"/>
+                            <field name="is_partner_email_update" invisible="1"/>
+                            <field name="is_partner_phone_update" invisible="1"/>
+                            <label for="partner_email" string="Email"/>
+                            <div class="o_row o_row_readonly">
+                                <field name="partner_email" widget="email" string="email"/>
+                                <span class="fa fa-exclamation-triangle text-warning oe_edit_only"
+                                title="By saving this change, the customer email will also be updated." attrs="{'invisible': [('is_partner_email_update', '=', False)]}"/>
+                            </div>
+                            <label for="partner_phone" string="Phone"/>
+                            <div class="o_row o_row_readonly">
+                                <field name="partner_phone" widget="phone" string="Phone"/>
+                                <span class="fa fa-exclamation-triangle text-warning oe_edit_only"
+                                title="By saving this change, the customer phone number will also be updated." attrs="{'invisible': [('is_partner_phone_update', '=', False)]}"/>
+                            </div>
+                            <field name="email_cc" groups="base.group_no_one"/>
+                        </group>
+                        <group>
+                            <field name="active" invisible="1"/>
+                            <field name="team_id" required="1" context="{'kanban_view_ref': 'helpdesk.helpdesk_team_view_kanban_mobile', 'default_use_sla': True}"/>
+                            <field name="user_id" class="field_user_id" domain="['&amp;', ('id', 'in', domain_user_ids), ('share', '=', False)]" widget="many2one_avatar_user"/>
+                            <field name="domain_user_ids" invisible="1"/>
+                            <field name="priority" widget="priority"/>
+                            <field name="ticket_type_id"/>
+                            <field name="tag_ids" widget="many2many_tags" options="{'color_field': 'color'}"/>
+                            <field name="company_id" groups="base.group_multi_company" context="{'create': False}"/>
+                        </group>
+                    </group>
+                    <group class="mb-0 mt-4">
+                        <group>
+                            <field name="order_id" options="{'no_create': True}"/>
+                            <field name="sale_order_line_id" options="{'no_create': True}"/>
+                            <field name="product_tmpl_id" invisible="1"/>
+                            <field name="bom_id" invisible="1"/>
+                        </group>
+                        <group>
+                            <field name="open_case" />
+                            <field name="response_date" readonly="1" force_save="1"/>
+                            <field name="resolution_date" readonly="1" force_save="1"/>
+                            <field name="resolution_time" readonly="1" force_save="1" />
+                        </group>
+                    </group>
+                    <group>
+                        <field name="is_change_service" invisible="1"/>
+                        <field name="bom_line_ids"  widget="one2many_list" context="{'default_parent_product_tmpl_id': product_tmpl_id, 'default_bom_id': bom_id}"
+                            attrs="{ 'readonly': [('is_change_service','=',False)]}" force_save="1"
+                        >
+                                <tree string="Components" editable="bottom">
+                                    <field name="company_id" invisible="1"/>
+                                    <field name="product_id" context="{'default_detailed_type': 'product'}"/>
+                                    <field name="product_tmpl_id" invisible="1"/>
+                                    <field name="product_qty"/>
+                                    <field name="product_uom_category_id" invisible="1"/>
+                                    <field name="parent_product_tmpl_id" invisible="1" />
+                                    <field name="product_uom_id" options="{'no_open':True,'no_create':True}" groups="uom.group_uom"/>
+                                    <field name="possible_bom_product_template_attribute_value_ids" invisible="1"/>
+                                    <field name="bom_product_template_attribute_value_ids" invisible="1"/>
+                                    <field name="allowed_operation_ids" invisible="1"/>
+                                    <field name="operation_id" invisible="1"/>
+                                    <field name="manual_consumption_readonly" invisible="1"/>
+                                    <field name="manual_consumption" optional="hide" width="1.0" attrs="{'readonly': [('manual_consumption_readonly', '=', True)]}"/>
+                                </tree>
+                            </field>
+                    </group>
+<!--
+                    <div colspan="8" attrs="{'invisible': [('team_id', '=', False)]}">
+                        <field name="properties" nolabel="1" columns="2" hideKanbanOption="1"/>
+                    </div>
+-->
+                    <field name="description" class="oe-bordered-editor field_description" placeholder="Description of the ticket..."/>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids" options="{'post_refresh': 'recipients'}"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+
+</odoo>

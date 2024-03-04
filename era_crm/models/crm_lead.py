@@ -174,6 +174,10 @@ class Lead(models.Model):
     po_data = fields.Binary(string="Purchase Order")
     po_filename = fields.Char(string="Purchase Order")
 
+
+    def action_request_presale(self):
+        raise UserError(_('wizard preesale'))
+
     @api.onchange('max_disc')
     def _onchange_max_disc(self):
         if self.max_disc>0:
@@ -219,11 +223,13 @@ class Lead(models.Model):
         if self.stage_id.is_won:
             if self.need_validation and self.review_status!='approved':
                 raise UserError(_('This Opportunity need Validation'))
-            elif not self.need_validation or self.review_status=='approved':
+#            elif not self.need_validation or self.review_status=='approved':
+            else:
+                self.write({'stage_id': self.stage_id.id, 'probability': 100, 'is_won': True})
                 self.action_set_won()
-#                raise UserError(_('Approved and create SO'))
         elif self.is_won:
                 raise UserError(_('This Opportunity already Won, and cannot change Stage to %s')%(self.stage_id.name))
+#        raise UserError(_('App %s')%(self.stage_id.is_won))
 
     def action_set_won(self):
         """ Won semantic: probability = 100 (active untouched) """
@@ -249,6 +255,7 @@ class Lead(models.Model):
                 leads_by_won_stage[stage_id] = lead
         for won_stage_id, leads in leads_by_won_stage.items():
             leads.write({'stage_id': won_stage_id.id, 'probability': 100, 'is_won': True})
+#        raise UserError(_('App1 %s')%(self.is_won))
         return True
 
        
@@ -364,6 +371,7 @@ class Lead(models.Model):
                                         'operation_ids': operation_ids,
                                         'consumption': 'strict',
                                         'type': 'normal',
+                                        'lead_id': self.id,
                                         })
             vals.append((0,0,{'name': product_id.name, 
                               'product_id': product_id.id,
@@ -869,6 +877,7 @@ class Lead(models.Model):
             ord_summ = self.env['crm.order.summary'].search([('order_sequence','not in',ord_seq),('lead_id','=',self.id)])
             ord_summ.unlink()
 #            raise UserError(_('dd %s')%(ord_summ))
+#        raise UserError(_('vals %s = %s')%(vals,self.is_won))
         return res
 
 class Lead(models.Model):

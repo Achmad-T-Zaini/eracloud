@@ -65,6 +65,7 @@
             <button name="restart_validation" string="Restart Validation" 
                 attrs="{'invisible': ['|',('is_won','=',True),('review_ids', '=', [])]}" type="object"/>
                 <button string="Confirm Order" name="action_create_sale_order" type="object" class="oe_highlight" title="Create new sales order" attrs="{'invisible': ['|','|',('sale_order_count','!=',0),('is_won', '=', False), ('validated', '=', True)]}"/>
+                <button string="Request Presale" name="action_request_presale" type="object" class="oe_highlight" title="Request Presale" />
 
             </button>
 
@@ -400,8 +401,14 @@ style="margin-bottom:0px;">
                 <page string="Pre-Sales / Operations" name="pre_sales" attrs="{ 'invisible': [('order_id','=',False)], 'readonly': [('is_won','=',True)]}">
                     <group attrs="{ 'readonly': [('is_won','=',True)]}">
                         <group string="Pre-Sales">
-                            <span> Request Trial / POC  to Pre-Sales Team </span>
-                            <field name="presale_id">
+                            <field name="presale_id" mode="tree">
+                                <tree editable="bottom">
+                                    <field name="presale_type" required="1"/>
+                                    <field name="date_from" class="oe_inline"  required="1"/> 
+                                    <field name="date_to" class="oe_inline" required="1"/>
+                                    <field name="product_id"  required="1"/>
+                                    <field name="company_id" invisible="1"/>
+                                </tree>
                                 <form>
                                     <group>
                                         <group>
