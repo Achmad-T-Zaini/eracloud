@@ -72,7 +72,7 @@ class HelpdeskTicket(models.Model):
         )
     sale_order_line_id = fields.Many2one('sale.order.line', string='Services', 
         domain="""[
-            ('order_id', '=', sale_order_id),
+            ('order_id', '=', order_id),
             ('product_id.detailed_type','=','product'),]""",
         )
     product_tmpl_id = fields.Many2one('product.template', string='Product',)
