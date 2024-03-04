@@ -36,6 +36,8 @@
 
         <page name="description" position="after">
             <page string="Product Components" name="component">
+                        <field name="product_tmpl_id" invisible="1"/>
+                        <field name="bom_id" invisible="1"/>
                         <field name="is_change_service" invisible="1"/>
                         <field name="bom_line_ids" widget="one2many_list" context="{'default_parent_product_tmpl_id': product_tmpl_id, 'default_bom_id': bom_id}"
                             attrs="{ 'readonly': [('is_change_service','=',False)]}" force_save="1"
