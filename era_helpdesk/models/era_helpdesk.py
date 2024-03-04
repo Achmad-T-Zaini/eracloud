@@ -79,6 +79,7 @@ class HelpdeskTicket(models.Model):
     bom_id = fields.Many2one('mrp.bom', 'Bill of Materials',)
     bom_line_ids = fields.One2many('mrp.bom.line', 'bom_id', 'Component', copy=False, related="bom_id.bom_line_ids")
     is_change_service = fields.Boolean(string='Change Service', related="ticket_type_id.is_change_service")
+    is_closed = fields.Boolean(string='Closed', related="stage_id.is_closed")
 
     @api.onchange('order_id')
     def _onchange_order_id_era(self):
