@@ -262,7 +262,7 @@ class Lead(models.Model):
     @api.onchange('order_id')
     def _onchange_order_id(self):
         if not self.order_id:
-            self.write({'summary_order_line': [(6,0,[])], 'tax_id': [(6,0,[self.env.company.account_sale_tax.id])] })  
+            self.write({'summary_order_line': [(6,0,[])], 'tax_id': [(6,0,[self.env.company.account_sale_tax_id.id])] })  
 
     @api.onchange('team_id','user_id', 'company_id')
     def _onchange_team_id(self):

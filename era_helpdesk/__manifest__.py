@@ -17,6 +17,7 @@
     "qweb": [],
     "data": [
         "views/era_helpdesk_views.xml",
+        "views/mail_template_data.xml",
     ],
     'installable': True,
     'application': False,
