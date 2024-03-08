@@ -232,6 +232,7 @@ class SaleOrderLine(models.Model):
                 if line_section:
                     if not self.product_categ_id and self.product_id.categ_id:
                         self.product_categ_id = self.product_id.categ_id.id
+                    self.order_sequence = line_section.order_sequence
 #            raise UserError(_('new %s = %s')%(self.sequence,self.order_sequence))
 
     def _convert_to_tax_base_line_dict_crm(self):

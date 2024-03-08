@@ -830,6 +830,7 @@ class Lead(models.Model):
                 order_sequence = self.order_line.filtered(lambda l: l.display_type=='line_section').sorted(key='order_sequence', reverse=True)[0].order_sequence +1
             ori_order_sequence = order_sequence
             line_section = False
+            product_categ_id = False
             for line in vals['order_line']:
                 if line[2]!=False:
                     line[2].update({'order_id': self.order_id.id,})
@@ -851,8 +852,8 @@ class Lead(models.Model):
                                     line[2].update({'recurrence_id': line[2]['recurrence_id'],})
             
         res = super().write(vals)
-        new_subtotals = self.order_line.filtered(lambda x: x.display_type=='line_subtotal' and x.order_sequence==order_sequence)
-#        raise UserError(_('ord seq %s == %s\n%s')%(order_sequence,ori_order_sequence,new_subtotals))
+        new_subtotals = self.order_line.filtered(lambda x: x.display_type=='line_subtotal')
+#        raise UserError(_('ord seq %s \n %s\n%s')%(order_sequence,ori_order_sequence,new_subtotals))
         if new_subtotals:
             ord_seq = []
             for new_subtotal in new_subtotals:
@@ -863,10 +864,11 @@ class Lead(models.Model):
                     summary_order.name = new_subtotal.name
                 if new_subtotal.product_uom_qty == 0:
                     new_subtotal.product_uom_qty = 1
-                subtotal = self.order_line.filtered(lambda x: x.display_type=='line_subtotal' and x.order_sequence==new_subtotal.order_sequence and x.product_categ_id==new_subtotal.product_categ_id and x.recurrence_id==new_subtotal.recurrence_id)
-                self._calculate_subtotal(subtotal)
-        else:
-            self._calculate_subtotal()
+#                subtotal = self.order_line.filtered(lambda x: x.display_type=='line_subtotal' and x.order_sequence==new_subtotal.order_sequence)
+#                subtotal = self.order_line.filtered(lambda x: x.display_type=='line_subtotal' and x.order_sequence==new_subtotal.order_sequence and x.product_categ_id==new_subtotal.product_categ_id and x.recurrence_id==new_subtotal.recurrence_id)
+#                self._calculate_subtotal(subtotal)
+#        else:
+#            self._calculate_subtotal()
 
         to_deletes = self.order_line.filtered(lambda x: x.display_type=='line_subtotal')
 #        raise UserError(_('ord seq %s == %s\n%s')%(order_sequence,ori_order_sequence,new_subtotals))
