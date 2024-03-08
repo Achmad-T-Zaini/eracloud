@@ -847,8 +847,8 @@ class Lead(models.Model):
                                 line[2]['product_categ_id'] = product_id.categ_id.id
                             if line[2].get('recurrence_id',False)==False:
                                 line[2]['recurrence_id'] = product_id.product_pricing_ids[0].recurrence_id.id if product_id.product_pricing_ids else False
-                                if line_section.get('recurrence_id',False):
-                                    line_section.update({'recurrence_id': line[2]['recurrence_id'],})
+                                if line[2].get('recurrence_id',False):
+                                    line[2].update({'recurrence_id': line[2]['recurrence_id'],})
             
         res = super().write(vals)
         new_subtotals = self.order_line.filtered(lambda x: x.display_type=='line_subtotal' and x.order_sequence==order_sequence)
