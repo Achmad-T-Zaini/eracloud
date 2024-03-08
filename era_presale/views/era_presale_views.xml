@@ -1,6 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
+    <record model="ir.ui.view" id="crm_lead_form_view_inherit_presale">
+        <field name="name">crm.lead.form.inherit.presale</field>
+        <field name="model">crm.lead</field>
+        <field name="inherit_id" ref="era_crm.crm_lead_form_view_inherit"/>
+        <field name="arch" type="xml">
+            
+            <button name="action_create_sale_order" position="before"/>
+                <button string="Request Presale" name="action_request_presale" type="object" class="oe_highlight" title="Request Presale" attrs="{'invisible': ['|','|',('sale_order_count','!=',0),('is_won', '=', False), ('validated', '=', True)]}"/>
+            </button>
+
+        </field>
+    </record>
+
         <record id="era_presale_form_view" model="ir.ui.view">
             <field name="name">era.presale.form.view</field>
             <field name="model">era.presale</field>

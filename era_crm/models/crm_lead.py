@@ -841,9 +841,9 @@ class Lead(models.Model):
                         if line[2].get('product_id',False)!=False:
                             line[2]['order_sequence']=order_sequence
                             product_id = self.env['product.product'].browse(line[2]['product_id'])
-                            if not line_section['order_type']:
+                            if line[2].get('order_type',False):
                                 line_section['order_type'] = product_id.detailed_type
-                            if not line_section['product_categ_id']:
+                            if line[2].get('product_categ_id',False):
                                 line_section['product_categ_id'] = product_id.categ_id.id
                             if line[2].get('recurrence_id',False)==False:
                                 line[2]['recurrence_id'] = product_id.product_pricing_ids[0].recurrence_id.id if product_id.product_pricing_ids else False

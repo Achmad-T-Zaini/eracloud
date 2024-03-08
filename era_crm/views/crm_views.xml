@@ -65,7 +65,6 @@
             <button name="restart_validation" string="Restart Validation" 
                 attrs="{'invisible': ['|',('is_won','=',True),('review_ids', '=', [])]}" type="object"/>
                 <button string="Confirm Order" name="action_create_sale_order" type="object" class="oe_highlight" title="Create new sales order" attrs="{'invisible': ['|','|',('sale_order_count','!=',0),('is_won', '=', False), ('validated', '=', True)]}"/>
-                <button string="Request Presale" name="action_request_presale" type="object" class="oe_highlight" title="Request Presale" />
 
             </button>
 

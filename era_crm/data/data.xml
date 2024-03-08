@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
-    <data>
+    <data noupdate="1">
         <!-- EAD -->
         <record model="ir.sequence" id="era_quotation_sequence">
             <field name="name">EAD Quotation Sequence</field>
