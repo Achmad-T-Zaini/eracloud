@@ -175,12 +175,12 @@ class Lead(models.Model):
     po_filename = fields.Char(string="Purchase Order")
 
     expense_count = fields.Integer(string="Expenses Count", compute='_get_expenses')
-#    expense_ids = fields.One2many('hr.expense','lead_id', string="Expenses", copy=False)
+    expense_ids = fields.One2many('hr.expense','lead_id', string="Expenses", copy=False)
 
-#    @api.depends('expense_ids')
-#    def _get_expenses(self):
-#        for rec in self:
-#            rec.expense_count = len(rec.expense_ids)
+    @api.depends('expense_ids')
+    def _get_expenses(self):
+        for rec in self:
+            rec.expense_count = len(rec.expense_ids)
 
     def action_request_presale(self):
         raise UserError(_('wizard preesale'))
