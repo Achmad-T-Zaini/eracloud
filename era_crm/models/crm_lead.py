@@ -858,6 +858,7 @@ class Lead(models.Model):
                                 if line_order.display_type=='line_subtotal':
                                     calc_st = False
 
+#        raise UserError(_('vals %s')%(vals))
         res = super().write(vals)
         new_subtotals = self.order_line.filtered(lambda x: x.display_type=='line_subtotal')
 #        raise UserError(_('ord seq %s \n %s\n%s')%(order_sequence,ori_order_sequence,new_subtotals))
