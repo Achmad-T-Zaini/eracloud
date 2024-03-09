@@ -175,7 +175,7 @@ class Lead(models.Model):
     po_filename = fields.Char(string="Purchase Order")
 
     expense_count = fields.Integer(string="Expenses Count", compute='_get_expenses')
-    expense_ids = fields.One2many('hr.expense','lead_id', string="Expenses", copy=False)
+    expense_ids = fields.One2many('hr.expense','lead_id', string="Expenses")
 
     @api.depends('expense_ids')
     def _get_expenses(self):
