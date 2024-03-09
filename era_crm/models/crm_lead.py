@@ -174,10 +174,44 @@ class Lead(models.Model):
     po_data = fields.Binary(string="Purchase Order")
     po_filename = fields.Char(string="Purchase Order")
 
+    expense_count = fields.Integer(string="Expenses Count", compute='_get_expenses')
+    expense_ids = fields.One2many('hr.expense','lead_id', string="Expenses", copy=False)
+
+    @api.depends('expense_ids')
+    def _get_expenses(self):
+        for rec in self:
+            rec.expense_count = len(rec.expense_ids)
 
     def action_request_presale(self):
         raise UserError(_('wizard preesale'))
 
+    def action_view_expenses(self):
+        action = self.env['ir.actions.actions']._for_xml_id('hr_expense.hr_expense_actions_my_all')
+        employee = self.env['hr.employee'].search([('user_id','=',self.user_id.id)])
+        if self.expense_count > 1:
+            action['domain'] = [('lead_id', '=', self.id)]
+        elif self.expense_count == 1:
+            form_view = [(self.env.ref('hr_expense.hr_expense_view_form').id, 'form')]
+            if 'views' in action:
+                action['views'] = form_view + [(state,view) for state,view in action['views'] if view != 'form']
+            else:
+                action['views'] = form_view
+            action['res_id'] = self.expense_ids[0].id
+        else:
+            action['domain'] = [('lead_id', '=', self.id)]
+
+        context = {
+            'default_payment_mode': 'own_account',
+            'default_lead_id': self.id,
+        }
+        if len(self) == 1:
+            context.update({
+                'default_employee_id': employee.id or False,
+            })
+        action['context'] = context
+        return action
+    
+    
     @api.onchange('max_disc')
     def _onchange_max_disc(self):
         if self.max_disc>0:

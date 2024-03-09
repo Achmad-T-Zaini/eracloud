@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+<record id="hr_expense_view_form_era" model="ir.ui.view">
+  <field name='name'>hr.expense.form.inherited</field>
+  <field name="model">hr.expense</field>
+  <field name="inherit_id" ref="hr_expense.hr_expense_view_form"/>
+  <field name="arch" type="xml">
+
+    <xpath expr="//field[@name='account_id']" position="replace">
+        <field name="account_id" readonly="1" />
+        <field name="lead_id" invisible="1" />
+    </xpath>
+
+    <xpath expr="//field[@name='employee_id']" position="attributes">
+        <attribute name="attrs">{'readonly': [('lead_id','!=',False)]}</attribute>
+    </xpath>
+
+  </field>
+</record>
+
+
+</odoo>

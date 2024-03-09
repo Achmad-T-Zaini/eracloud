@@ -65,8 +65,17 @@
             <button name="restart_validation" string="Restart Validation" 
                 attrs="{'invisible': ['|',('is_won','=',True),('review_ids', '=', [])]}" type="object"/>
                 <button string="Confirm Order" name="action_create_sale_order" type="object" class="oe_highlight" title="Create new sales order" attrs="{'invisible': ['|','|',('sale_order_count','!=',0),('is_won', '=', False), ('validated', '=', True)]}"/>
-
             </button>
+
+            <xpath expr="//button[@name='action_schedule_meeting']" position="after">
+                    <button name="action_view_expenses"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-pencil-square-o"
+                        >
+                        <field name="expense_count" widget="statinfo" string="Expenses"/>
+                    </button>
+            </xpath>
 
         <header position="after">
           <field name="need_validation" invisible="1"/>
@@ -105,6 +114,7 @@ style="margin-bottom:0px;">
             </p>
           </div>
         </header>
+
 
         <xpath expr="//form/div[hasclass('oe_chatter')]" position="before">
         <field
