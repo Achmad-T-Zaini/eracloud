@@ -11,5 +11,5 @@ class HrExpense(models.Model):
     _inherit = "hr.expense"
 
 
-    lead_id = fields.Many2one('crm.lead', string='CRM Lead', copy=False, store=True)
+    lead_id = fields.Many2one(comodel_name='crm.lead', string='CRM Lead', copy=False, store=True)
     
