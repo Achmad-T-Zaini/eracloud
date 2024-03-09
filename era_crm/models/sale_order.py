@@ -288,23 +288,14 @@ class SaleOrderLine(models.Model):
             if line.display_type!='line_subtotal':
                 if line.qty_invoiced > 0:
                     continue
-#                if not line.product_uom or not line.product_id or not line.order_id.pricelist_id:
-#                    line.price_unit = 0.0
-#                    line.crm_price_unit = 0.0
                 if line.product_id:
-                    if line.crm_price_unit==0:
-                        price = line.with_company(line.company_id)._get_display_price()
-                    else:
-                        line.crm_price_unit=line.price_unit
-                        price=line.price_unit
-
                     line.crm_price_unit = line.product_id._get_tax_included_unit_price(
                         line.company_id,
                         line.order_id.currency_id,
                         line.order_id.date_order,
                         'sale',
                         fiscal_position=line.order_id.fiscal_position_id,
-                        product_price_unit=price,
+#                        product_price_unit=price,
                         product_currency=line.currency_id
                     )
 

@@ -533,6 +533,7 @@ class Lead(models.Model):
 
 
     def _update_subtotal(self,subtotals):
+#        raise UserError(_('subtotals %s')%(subtotals))
         for subtotal in subtotals:
             line_product = self.order_line.filtered(lambda x: x.order_sequence==subtotal.order_sequence and x.product_categ_id.id==subtotal.product_categ_id.id and x.recurrence_id==subtotal.recurrence_id and x.product_id)
             def_qty = subtotal.product_uom_qty
@@ -568,7 +569,6 @@ class Lead(models.Model):
                                 self._update_subtotal(subttl)
                     else:
                         line_product = self.order_line.filtered(lambda x: x.order_sequence==line_section.order_sequence and x.product_id).sorted(key= lambda l: (l.product_categ_id,l.recurrence_id))
-#                        raise UserError(_('cek %s')%(line_product))
                         name = line_section.name
                         if line_product:
                             self._create_new_subtotal_line(line_section.order_sequence,line_section,line_product)
@@ -825,32 +825,39 @@ class Lead(models.Model):
 
     def write(self,vals):
         order_sequence = ori_order_sequence = 1
+        calc_st = True
         if vals.get('order_line',False):
             if self.order_line:
                 order_sequence = self.order_line.filtered(lambda l: l.display_type=='line_section').sorted(key='order_sequence', reverse=True)[0].order_sequence +1
-            ori_order_sequence = order_sequence
-            line_section = False
-            product_categ_id = False
             for line in vals['order_line']:
                 if line[2]!=False:
                     line[2].update({'order_id': self.order_id.id,})
-#                    if line[2].get('order_sequence',False)==False:
-#                        if line[2].get('display_type',False)=='line_section':
-#                            order_sequence +=1
-#                            line[2]['order_sequence']=order_sequence
-#                            line_section = line[2]
-#                        if line[2].get('product_id',False)!=False:
-#                            line[2]['order_sequence']=order_sequence
-#                            product_id = self.env['product.product'].browse(line[2]['product_id'])
-#                            if line[2].get('order_type',False):
-#                                line[2]['order_type'] = product_id.detailed_type
-#                            if line[2].get('product_categ_id',False):
-#                                line[2]['product_categ_id'] = product_id.categ_id.id
-#                            if line[2].get('recurrence_id',False)==False:
-#                                line[2]['recurrence_id'] = product_id.product_pricing_ids[0].recurrence_id.id if product_id.product_pricing_ids else False
-#                                if line[2].get('recurrence_id',False):
-#                                    line[2].update({'recurrence_id': line[2]['recurrence_id'],})
-            
+                    if line[2].get('order_sequence',False)==False:
+                        if line[2].get('display_type',False)=='line_section':
+                            order_sequence +=1
+                            line[2]['order_sequence']=order_sequence
+                            line_section = line[2]
+                        if line[2].get('product_id',False):
+                            if isinstance(line[1],int):
+                                line_order = self.env['sale.order.line'].browse(line[1])
+                                line[2]['order_sequence']=line_order.order_sequence
+                            else:
+                                line[2]['order_sequence']=order_sequence
+                            product_id = self.env['product.product'].browse(line[2]['product_id'])
+                            if line[2].get('order_type',False):
+                                line[2]['order_type'] = product_id.detailed_type
+                            if line[2].get('product_categ_id',False):
+                                line[2]['product_categ_id'] = product_id.categ_id.id
+                            if line[2].get('recurrence_id',False)==False:
+                                line[2]['recurrence_id'] = product_id.product_pricing_ids[0].recurrence_id.id if product_id.product_pricing_ids else False
+                                if line[2].get('recurrence_id',False):
+                                    line[2].update({'recurrence_id': line[2]['recurrence_id'],})
+                        else:
+                            if isinstance(line[1],int):
+                                line_order = self.env['sale.order.line'].browse(line[1])
+                                if line_order.display_type=='line_subtotal':
+                                    calc_st = False
+
         res = super().write(vals)
         new_subtotals = self.order_line.filtered(lambda x: x.display_type=='line_subtotal')
 #        raise UserError(_('ord seq %s \n %s\n%s')%(order_sequence,ori_order_sequence,new_subtotals))
@@ -864,11 +871,12 @@ class Lead(models.Model):
                     summary_order.name = new_subtotal.name
                 if new_subtotal.product_uom_qty == 0:
                     new_subtotal.product_uom_qty = 1
-#                subtotal = self.order_line.filtered(lambda x: x.display_type=='line_subtotal' and x.order_sequence==new_subtotal.order_sequence)
                 subtotal = self.order_line.filtered(lambda x: x.display_type=='line_subtotal' and x.order_sequence==new_subtotal.order_sequence and x.product_categ_id==new_subtotal.product_categ_id and x.recurrence_id==new_subtotal.recurrence_id)
-                self._calculate_subtotal(subtotal)
-        else:
+#                self._calculate_subtotal(subtotal)
+#        else:
+        if calc_st:
             self._calculate_subtotal()
+#        raise UserError(_('vals %s'%(vals)))
 
         to_deletes = self.order_line.filtered(lambda x: x.display_type=='line_subtotal')
 #        raise UserError(_('ord seq %s == %s\n%s')%(order_sequence,ori_order_sequence,new_subtotals))
