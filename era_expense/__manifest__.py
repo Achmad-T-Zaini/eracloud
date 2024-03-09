@@ -11,7 +11,7 @@
     "author": "Achmad T. Zaini",
     'category': 'Expenses',
     "website": "https://github.com/Achmad-T-Zaini/eracloud",
-    "depends": ["base", "sale", "crm", "hr_expense"
+    "depends": ["base", "sale", "crm", "hr_expense", "era_crm"
                 ],
     "qweb": [],
     "data": [
