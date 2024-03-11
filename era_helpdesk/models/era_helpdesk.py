@@ -91,6 +91,8 @@ class HelpdeskTicket(models.Model):
         if not self.user_id:
             raise UserError(_("There's No assignment yet!!!"))
         employee_id = self.env['hr.employee'].search([('user_id','=', self.env.user.id)])
+        if not employee_id:
+            raise UserError(_("Assigned user is not an Employee..."))
         if self.is_closed:
             raise UserError(_('Closed Ticket, can not be changed!'))
         elif self.is_solved and not self.stage_id.is_closed:
