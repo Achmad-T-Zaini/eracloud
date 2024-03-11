@@ -88,6 +88,8 @@ class HelpdeskTicket(models.Model):
 
     @api.onchange('stage_id')
     def _onchange_stage_id_era(self):
+        if not self.user_id:
+            raise UserError(_("There's No assignment yet!!!"))
         employee_id = self.env['hr.employee'].search([('user_id','=', self.env.user.id)])
         if self.is_closed:
             raise UserError(_('Closed Ticket, can not be changed!'))
