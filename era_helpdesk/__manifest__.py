@@ -12,7 +12,7 @@
     'category': 'Helpdesk',
     "website": "https://github.com/Achmad-T-Zaini/eracloud",
     "depends": ["base", "sale", "crm", "sale_crm","sale_temporal", "sales_team",
-                "mrp_account","mrp","product", "helpdesk", "helpdesk_sale", "helpdesk_timesheet"
+                "mrp_account","mrp","product", "helpdesk", "helpdesk_sale", "helpdesk_timesheet",
                 ],
     "qweb": [],
     "data": [

@@ -9,6 +9,7 @@ class MrpProduction(models.Model):
     _inherit = 'mrp.production'
 
     workorder_status = fields.Char(string='WO Status')
+    instalation_notes = fields.Html(sanitize_attributes=False)
 
     @api.onchange('state')
     def _onchange_state_era(self):

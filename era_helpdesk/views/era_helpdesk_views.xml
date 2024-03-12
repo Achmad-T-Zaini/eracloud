@@ -47,6 +47,7 @@
                 <field name="sequence" widget="handle"/>
                 <field name="name" placeholder="e.g. Question"/>
                 <field name="is_change_service" />
+                <field name="scope_type" />
             </tree>
         </field>
     </record>
@@ -60,30 +61,8 @@
         <button name="action_timer_start" position="replace" />
         <button name="action_timer_start" position="replace" />
         <page name="description" position="after">
-            <page string="Product Components" name="component" attrs="{ 'readonly': [('is_closed','=',True)]}">
-                        <field name="product_tmpl_id" invisible="1"/>
-                        <field name="bom_id" invisible="1"/>
-                        <field name="is_closed" invisible="1"/>
-                        <field name="is_change_service" invisible="1"/>
-                        <field name="bom_line_ids" widget="one2many_list" context="{'default_parent_product_tmpl_id': product_tmpl_id, 'default_bom_id': bom_id}"
-                            attrs="{ 'readonly': ['|',('is_closed','=',True),('is_change_service','=',False)]}" force_save="1"
-                        >
-                                <tree string="Components" editable="bottom">
-                                    <field name="company_id" invisible="1"/>
-                                    <field name="product_id" context="{'default_detailed_type': 'product'}"/>
-                                    <field name="product_tmpl_id" invisible="1"/>
-                                    <field name="product_qty"/>
-                                    <field name="product_uom_category_id" invisible="1"/>
-                                    <field name="parent_product_tmpl_id" invisible="1" />
-                                    <field name="product_uom_id" options="{'no_open':True,'no_create':True}" groups="uom.group_uom"/>
-                                    <field name="possible_bom_product_template_attribute_value_ids" invisible="1"/>
-                                    <field name="bom_product_template_attribute_value_ids" invisible="1"/>
-                                    <field name="allowed_operation_ids" invisible="1"/>
-                                    <field name="operation_id" invisible="1"/>
-                                    <field name="manual_consumption_readonly" invisible="1"/>
-                                    <field name="manual_consumption" optional="hide" width="1.0" attrs="{'readonly': [('manual_consumption_readonly', '=', True)]}"/>
-                                </tree>
-                            </field>
+            <page string="Instalation Notes" name="install_notes" attrs="{ 'readonly': [('is_closed','=',True)]}">
+                <field name="instalation_notes" attrs="{ 'readonly': [('is_closed','=',True)]}"/>
             </page>
         </page>
     <xpath expr="//field[@name='description']" position="attributes">
@@ -124,8 +103,8 @@
             <form string="Helpdesk Ticket" >
                 <header>
                     <button name="assign_ticket_to_self" string="Assign To Me" type="object" class="oe_highlight" groups="helpdesk.group_helpdesk_user" attrs="{'invisible': [('user_id', '!=', False)]}" data-hotkey="q"/>
-                    <button name="action_submit" string="Submit" type="object" class="oe_highlight" groups="helpdesk.group_helpdesk_user" attrs="{'invisible': [('open_case', '!=', False)]}" />
-                    <button name="action_confirm_era" string="Confirm" type="object" class="oe_highlight" groups="helpdesk.group_helpdesk_user" attrs="{'invisible': [('response_date', '!=', False)]}" />
+                    <button name="action_submit" string="Submit" type="object" class="oe_highlight" groups="helpdesk.group_helpdesk_user" attrs="{'invisible': ['|',('open_case', '!=', False),'|',('is_closed','=',True),('is_solved','=',True)]}" />
+                    <button name="action_confirm_era" string="Confirm" type="object" class="oe_highlight" groups="helpdesk.group_helpdesk_user" attrs="{'invisible': ['|',('response_date', '!=', False),'|',('is_closed','=',True),('is_solved','=',True)]}" />
                     <field name="stage_id" widget="statusbar"
                         options="{'clickable': '1', 'fold_field': 'fold'}"/>
                 </header>
@@ -197,15 +176,15 @@
                             <field name="user_id" class="field_user_id" domain="['&amp;', ('id', 'in', domain_user_ids), ('share', '=', False)]" widget="many2one_avatar_user" attrs="{ 'readonly': [('is_closed','=',True)]}"/>
                             <field name="domain_user_ids" invisible="1" attrs="{ 'readonly': [('is_closed','=',True)]}"/>
                             <field name="priority" widget="priority" attrs="{ 'readonly': [('is_closed','=',True)]}"/>
-                            <field name="ticket_type_id" attrs="{ 'readonly': [('is_closed','=',True)]}"/>
                             <field name="tag_ids" widget="many2many_tags" options="{'color_field': 'color'}" attrs="{ 'readonly': [('is_closed','=',True)]}"/>
-                            <field name="company_id" groups="base.group_multi_company" context="{'create': False}" attrs="{ 'readonly': [('is_closed','=',True)]}"/>
+                            <field name="company_id" invisible="1" groups="base.group_multi_company" context="{'create': False}" attrs="{ 'readonly': [('is_closed','=',True)]}"/>
                         </group>
                     </group>
                     <group class="mb-0 mt-4">
                         <group>
-                            <field name="order_id" options="{'no_create': True}" attrs="{ 'readonly': [('is_closed','=',True)]}"/>
+                            <field name="order_id" options="{'no_create': True}" readonly="1" force_save="1"/>
                             <field name="sale_order_line_id" options="{'no_create': True}" attrs="{ 'readonly': [('is_closed','=',True)]}"/>
+                            <field name="ticket_type_id" attrs="{ 'readonly': [('is_closed','=',True)]}"/>
                             <field name="is_change_service" invisible="1"/>
                             <field name="product_tmpl_id" invisible="1"/>
                             <field name="bom_id" invisible="1"/>

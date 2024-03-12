@@ -55,6 +55,11 @@
             <field name="company_id" position="after">
                 <field name="workorder_status" invisible="1" />
             </field>
+        <page name="miscellaneous" position="after">
+            <page string="Instalation Notes" name="install_notes" attrs="{ 'readonly': [('state','in',['done','cancel'])]}">
+                <field name="instalation_notes" attrs="{ 'readonly': [('state','in',['done','cancel'])]}"/>
+            </page>
+        </page>
         </field>
     </record>
 

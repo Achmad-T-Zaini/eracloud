@@ -17,10 +17,12 @@ class ResPartner(models.Model):
     _inherit = "res.partner"
 
     partner_initial = fields.Char(string='Initials', size=3)
-    _sql_constraints = [
-        (
-            'unique_partner_ny_initial', 'UNIQUE(partner_initial)', 'Only one Initial for Each Partner')
-    ]
+
+class HrExpense(models.Model):
+    _inherit = "hr.expense"
+
+
+    lead_id = fields.Many2one(comodel_name='crm.lead', string='CRM Lead', copy=False, store=True)
 
 class CRMTeam(models.Model):
     _inherit = "crm.team"
