@@ -221,7 +221,7 @@ class SaleOrderLine(models.Model):
 
         if self.display_type=='line_subtotal' and (self.product_uom_qty==0 or not self.product_uom_qty):
             self.product_uom_qty = 1
-
+        self._onchange_sequence()
 
     @api.onchange('sequence')
     def _onchange_sequence(self):
