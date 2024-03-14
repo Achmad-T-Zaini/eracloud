@@ -789,7 +789,7 @@ class Lead(models.Model):
             total_discount = total_contract_bruto - total_contract
 #            raise UserError(_('ttl %s = %s = %s')%(total_monthly,bruto_total_monthly,total_discount))
             if total_contract>0:
-                order.total_disc = total_discount/total_contract_bruto * 100
+                order.total_disc = periode_disc/(periode_disc + total_contract) * 100
 #                total_contract_discount = total_discount
 
             order.total_contract = total_contract
@@ -806,7 +806,7 @@ class Lead(models.Model):
                           'total_yearly': total_yearly,
                           'total_onetime': total_onetime,
                           'total_contract': total_contract,
-                          'total_contract_discount': total_discount,
+                          'total_contract_discount': periode_disc,
 #                          'total_disc': total_disc,
                           'max_disc': max_disc,
                           'total_discount': total_discount,
