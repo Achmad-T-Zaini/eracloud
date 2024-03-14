@@ -103,11 +103,8 @@ First of all, we would like to thank your interest and the opportunity for us to
                                 <td name="td_quantity" style="width: 10%;border:1px solid;text-align: center;padding: 5px 5px 5px 5px;background-color:lightblue;">
                                     Quantity
                                 </td>
-                                <td name="td_priceunit" style="width: 15%;border:1px solid;text-align: center;padding: 5px 5px 5px 5px;background-color:lightblue;">
+                                <td name="td_priceunit" colspan="2" style="width: 20%;border:1px solid;text-align: center;padding: 5px 5px 5px 5px;background-color:lightblue;">
                                     Price Unit
-                                </td>
-                                <td name="td_quantity" style="width: 5%;border:1px solid;text-align: center;padding: 5px 5px 5px 5px;background-color:lightblue;">
-                                    Discount
                                 </td>
                                 <td name="td_subtotal" style="width: 20%;border:1px solid;text-align: center;padding: 5px 5px 5px 5px;background-color:lightblue;">
                                     Subtotal
@@ -125,11 +122,8 @@ First of all, we would like to thank your interest and the opportunity for us to
                                 <td name="td_quantity" style="text-align: center;width: 10%;border:1px solid;padding: 5px 5px 5px 5px;background-color:lightcyan;">
                                     <span t-esc="int(line.product_uom_qty)"/>
                                 </td>
-                                <td name="td_priceunit" style="width: 15%;border:1px solid;padding: 5px 5px 5px 5px;background-color:lightcyan;text-align: right;">
+                                <td name="td_priceunit" colspan="2" style="width: 20%;border:1px solid;padding: 5px 5px 5px 5px;background-color:lightcyan;text-align: right;">
                                     <span t-esc="line.currency_id.symbol + '{:{fill}{align}20,.2f}'.format(line.crm_price_unit,fill=' ',align='>')"/>
-                                </td>
-                                <td name="td_discount" style="width: 5%;border:1px solid;padding: 5px 5px 5px 5px;background-color:lightcyan;text-align: right;">
-                                    <span t-esc="'{:{fill}{align}20,.2f}'.format(line.discount,fill=' ',align='>')"/>
                                 </td>
                                 <td name="td_subtotal" style="width: 20%;border:1px solid;padding: 5px 5px 5px 5px;background-color:lightcyan;text-align: right;">
                                     <span t-esc="line.currency_id.symbol + '{:{fill}{align}20,.2f}'.format(line.crm_price_subtotal,fill=' ',align='>').rjust(20)"/>
@@ -142,11 +136,8 @@ First of all, we would like to thank your interest and the opportunity for us to
                                 <td name="td_quantity" style="width: 10%;border:1px solid;padding: 5px 5px 5px 5px;text-align: center;">
                                     <span t-esc="str(int(line.product_uom_qty)) + ' ' + line.product_uom.name"/>
                                 </td>
-                                <td name="td_priceunit" style="width: 15%;border:1px solid;padding: 5px 5px 5px 5px;text-align: right;">
-                                    <span t-esc="line.currency_id.symbol + '{:{fill}{align}20,.2f}'.format(line.crm_price_unit,fill=' ',align='>')"/>
-                                </td>
-                                <td name="td_discount" style="width: 5%;border:1px solid;padding: 5px 5px 5px 5px;text-align: right;">
-                                    <span t-esc="'{:{fill}{align}20,.2f}'.format(line.discount,fill=' ',align='>')"/>
+                                <td name="td_priceunit" colspan="2" style="width: 20%;border:1px solid;padding: 5px 5px 5px 5px;text-align: right;">
+                                    <span t-esc="line.currency_id.symbol + '{:{fill}{align}20,.2f}'.format(line.crm_price_unit * (100-line.discount)/100,fill=' ',align='>')"/>
                                 </td>
                                 <td t-if="not line.is_downpayment" name="td_subtotal" class="text-end o_price_total" style="width: 20%;border:1px solid;padding: 5px 5px 5px 5px;text-align: right;">
                                     <span t-esc="line.currency_id.symbol + '{:{fill}{align}20,.2f}'.format(line.crm_price_subtotal,fill=' ',align='>')"/>

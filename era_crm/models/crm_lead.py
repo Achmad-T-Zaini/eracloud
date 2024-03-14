@@ -205,6 +205,7 @@ class Lead(models.Model):
         context = {
             'default_payment_mode': 'own_account',
             'default_lead_id': self.id,
+            'default_employee_id': employee.id,
         }
         if len(self) == 1:
             context.update({
@@ -558,7 +559,7 @@ class Lead(models.Model):
                 section.crm_price_unit = 0
                 section.price_unit = 0
                 line_product = self.order_line.filtered(lambda x: x.order_sequence==section.order_sequence and x.product_id and x.product_categ_id.id==section.product_categ_id.id )
-                line_subtotal = sum(line.product_uom_qty*line.crm_price_unit for line in line_product) or 0
+                line_subtotal = sum((line.product_uom_qty*line.crm_price_unit)*(100-line.discount)/100 for line in line_product) or 0
                 if line_product:
                     pto_update = self.summary_order_line.filtered(lambda l: l.order_sequence ==section.order_sequence and l.product_categ_id.id==section.product_categ_id.id)
                     if pto_update:

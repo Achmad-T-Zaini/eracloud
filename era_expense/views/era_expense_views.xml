@@ -9,7 +9,7 @@
 
     <xpath expr="//field[@name='account_id']" position="replace">
         <field name="account_id" readonly="1" />
-        <field name="lead_id" invisible="1" />
+        <field name="lead_id" readonly="1" force_save="1" attrs="{ 'invisible': [('lead_id','!=',False)]}"/>
     </xpath>
 
     <xpath expr="//field[@name='employee_id']" position="attributes">
