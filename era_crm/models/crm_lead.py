@@ -764,7 +764,7 @@ class Lead(models.Model):
             taxes=self.tax_id,
             price_unit=self.total_contract,
             quantity=1,
-            discount=self.total_disc,
+#            discount=self.total_disc,
 #            price_subtotal=self.total_contract,
         )
        
@@ -787,12 +787,12 @@ class Lead(models.Model):
             total_contract = (total_monthly * order.duration) + total_yearly + total_onetime - periode_disc
             total_contract_bruto = (bruto_total_monthly * order.duration) + bruto_total_yearly + bruto_total_onetime
             total_discount = total_contract_bruto - total_contract
-#            raise UserError(_('ttl %s = %s = %s')%(total_contract,total_contract_bruto,total_discount))
+#            raise UserError(_('ttl %s = %s = %s')%(total_monthly,bruto_total_monthly,total_discount))
             if total_contract>0:
-                order.total_disc = total_discount/total_contract_bruto * 100
-                order.total_contract_discount = total_discount
+                total_disc = total_discount/total_contract_bruto * 100
+#                total_contract_discount = total_discount
 
-            order.total_contract = total_contract_bruto
+            order.total_contract = total_contract
 
             tax_results = self.env['account.tax']._compute_taxes([order._convert_to_tax_base_line_dict()])
             totals = list(tax_results['totals'].values())[0]
@@ -805,9 +805,9 @@ class Lead(models.Model):
                           'total_monthly': total_monthly,
                           'total_yearly': total_yearly,
                           'total_onetime': total_onetime,
-#                          'total_contract': amount_untaxed,
+                          'total_contract': total_contract,
                           'total_contract_discount': total_discount,
-#                          'total_disc': total_disc,
+                          'total_disc': total_disc,
                           'max_disc': max_disc,
                           'total_discount': total_discount,
                           'grand_total_contract': total_contract + order.total_tax})
